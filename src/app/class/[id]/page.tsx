@@ -1,16 +1,14 @@
 "use client";
 
 import { useClassStore, renameClass, FileMeta, QuizQuestion, GeneratedContent } from '../../lib/store';
-import { useEffect, useState, use, useCallback } from 'react';
-import { useDropzone, FileWithPath } from 'react-dropzone';
+import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 
 export default function ClassPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  
+
   // Use reactive selectors for real-time updates
   const classData = useClassStore((state) => state.classes.find(c => c.id === resolvedParams.id));
-  const addFileToClass = useClassStore((state) => state.addFileToClass);
   const removeFileFromClass = useClassStore((state) => state.removeFileFromClass);
   const toggleFileSelection = useClassStore((state) => state.toggleFileSelection);
   const updateClassGeneratedContent = useClassStore((state) => state.updateClassGeneratedContent);
@@ -25,40 +23,12 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const [currentAction, setCurrentAction] = useState('');
   const [chatMessage, setChatMessage] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
-  
+
   //rename logic
   const handleRename = () => {
     renameClass(resolvedParams.id);
   };
 
-  // File upload logic with content reading
-  const onDrop = useCallback(async (acceptedFiles: FileWithPath[]) => {
-    for (const file of acceptedFiles) {
-      const fileMeta: FileMeta = {
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        selected: false,
-      };
-      
-      // Read file content for AI processing
-      try {
-        const content = await file.text();
-        fileMeta.content = content;
-      } catch (error) {
-        console.error('Error reading file:', error);
-      }
-      
-      addFileToClass(resolvedParams.id, fileMeta);
-    }
-    
-    // Auto-generate title if this is the first file
-    if (classData?.files.length === 0) {
-      await generateAutoTitle();
-    }
-  }, [resolvedParams.id, addFileToClass, classData?.files.length]);
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   // File delete logic
   const handleDeleteFile = (fileIndex: number) => {
@@ -71,30 +41,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   };
 
   // AI Functions
-  const generateAutoTitle = async () => {
-    if (!classData?.files.length) return;
-    
-    const selectedFiles = classData.files.filter(f => f.selected);
-    const content = selectedFiles.map(f => f.content || '').join('\n\n');
-    
-    try {
-      const response = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generateTitle', content })
-      });
-      
-      const { title } = await response.json();
-      // Update the class name directly in the store
-      useClassStore.setState((state) => ({
-        classes: state.classes.map((cls) =>
-          cls.id === resolvedParams.id ? { ...cls, name: title } : cls
-        ),
-      }));
-    } catch (error) {
-      console.error('Error generating title:', error);
-    }
-  };
 
   const handleActionButton = async (action: string) => {
     if (!classData?.files.some(f => f.selected)) {
@@ -104,7 +50,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
     setCurrentAction(action);
     setShowDetailPrompt(true);
-    
+
     // Set default prompts based on action
     const prompts = {
       'quiz': 'Please enter any details related to the quiz such as the number of questions desired, multiple choice/true or false/fill in the blank amounts, or specific material the quiz should be on.',
@@ -112,46 +58,46 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       'keyPoints': 'Please enter any specific requirements for the key points such as number of points, focus areas, or particular aspects to highlight.',
       'slides': 'Please enter any specific requirements for the slides such as number of slides, presentation style, or particular topics to cover.'
     };
-    
+
     setDetailPrompt(prompts[action as keyof typeof prompts] || '');
   };
 
   const generateContent = async () => {
     if (!classData?.files.some(f => f.selected)) return;
-    
+
     setIsGenerating(true);
     setShowDetailPrompt(false);
-    
+
     const selectedFiles = classData.files.filter(f => f.selected);
     const content = selectedFiles.map(f => f.content || '').join('\n\n');
-    
+
     try {
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: currentAction, 
-          content, 
-          details: detailPrompt 
+        body: JSON.stringify({
+          action: currentAction,
+          content,
+          details: detailPrompt
         })
       });
-      
+
       const result = await response.json();
-      
+
       // Update store with generated content
       const generatedContent: GeneratedContent = {
         [currentAction]: result[currentAction] || result.quiz || result.summary || result.keyPoints || result.slides,
         lastGenerated: currentAction
       };
-      
+
       updateClassGeneratedContent(resolvedParams.id, generatedContent);
-      
+
       // Add to chat history
       addChatMessage(resolvedParams.id, {
         role: 'assistant',
         content: `Generated ${currentAction} successfully! You can now edit the content below or ask me to make changes.`
       });
-      
+
     } catch (error) {
       console.error('Error generating content:', error);
       addChatMessage(resolvedParams.id, {
@@ -165,30 +111,30 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
   const sendChatMessage = async () => {
     if (!chatMessage.trim()) return;
-    
+
     addChatMessage(resolvedParams.id, {
       role: 'user',
       content: chatMessage
     });
-    
+
     try {
       const response = await fetch('/api/gemini', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          action: 'chat', 
+        body: JSON.stringify({
+          action: 'chat',
           content: chatMessage,
           details: `Current context: ${currentAction} generation for lesson "${classData?.name}"`
         })
       });
-      
+
       const { response: aiResponse } = await response.json();
-      
+
       addChatMessage(resolvedParams.id, {
         role: 'assistant',
         content: aiResponse
       });
-      
+
     } catch (error) {
       console.error('Error with chat:', error);
       addChatMessage(resolvedParams.id, {
@@ -196,7 +142,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
         content: 'Sorry, there was an error processing your message. Please try again.'
       });
     }
-    
+
     setChatMessage('');
   };
 
@@ -227,7 +173,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       <div className="flex items-center gap-4 p-6 border-b border-zinc-200 dark:border-zinc-700">
         <Link href="/" className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6"/>
+            <path d="m15 18-6-6 6-6" />
           </svg>
         </Link>
         {classData ? (
@@ -238,7 +184,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
           <h1 className="text-2xl font-bold text-zinc-500">Loading...</h1>
         )}
       </div>
-      
+
       {classData ? (
         <div className="flex h-[calc(100vh-80px)]">
           {/* Left Column - File Management */}
@@ -246,11 +192,10 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             <h2 className="text-lg font-semibold mb-4">Files</h2>
             <div className="space-y-2">
               {classData.files.map((file, index) => (
-                <div key={index} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                  file.selected 
-                    ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700' 
-                    : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
-                }`}>
+                <div key={index} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${file.selected
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
+                  : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
+                  }`}>
                   <div className="flex items-center flex-1 min-w-0">
                     <input
                       type="checkbox"
@@ -263,34 +208,24 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                       <p className="text-xs text-zinc-500">{Math.round(file.size / 1024)} KB</p>
                     </div>
                   </div>
-                  <button 
+                  <button
                     onClick={() => handleDeleteFile(index)}
                     className="ml-2 p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M18 6L6 18"/>
-                      <path d="M6 6l12 12"/>
+                      <path d="M18 6L6 18" />
+                      <path d="M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
               ))}
-              <div 
-                {...getRootProps()} 
-                className={`w-full p-3 border border-zinc-300 dark:border-zinc-600 rounded-lg hover:border-zinc-400 dark:hover:border-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors cursor-pointer ${isDragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : ''}`}
-              >
-                <input {...getInputProps()} />
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mx-auto">
-                  <path d="M12 5v14"/>
-                  <path d="M5 12h14"/>
-                </svg>
-              </div>
             </div>
           </div>
 
           {/* Middle Column - Preview & Chat */}
           <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 className="text-lg font-semibold mb-4">Preview & Chat</h2>
-            
+
             {/* Mobile Emulator Preview */}
             <div className="flex-1 mb-4">
               {classData.generatedContent && (
@@ -300,7 +235,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                     <div className="bg-blue-600 text-white p-3 text-center">
                       <h3 className="font-semibold">{classData.name}</h3>
                     </div>
-                    
+
                     {/* Mobile Content */}
                     <div className="p-4 h-full overflow-y-auto">
                       {classData.generatedContent.quiz && (
@@ -324,7 +259,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                                   </button>
                                 </div>
                               </div>
-                              
+
                               {question.type === 'MCQ' ? (
                                 <div className="space-y-1 text-xs">
                                   <div className="flex items-center">
@@ -362,14 +297,14 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                           ))}
                         </div>
                       )}
-                      
+
                       {classData.generatedContent.summary && (
                         <div className="text-sm">
                           <h4 className="font-semibold mb-2">Summary</h4>
                           <p className="text-gray-700 dark:text-gray-300">{classData.generatedContent.summary}</p>
                         </div>
                       )}
-                      
+
                       {classData.generatedContent.keyPoints && (
                         <div className="text-sm">
                           <h4 className="font-semibold mb-2">Key Points</h4>
@@ -409,11 +344,10 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
               <div className="flex-1 p-4 overflow-y-auto">
                 {classData.chatHistory?.map((message, index) => (
                   <div key={index} className={`mb-3 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block p-2 rounded-lg text-sm max-w-xs ${
-                      message.role === 'user' 
-                        ? 'bg-blue-600 text-white' 
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                    }`}>
+                    <div className={`inline-block p-2 rounded-lg text-sm max-w-xs ${message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                      }`}>
                       {message.content}
                     </div>
                   </div>
@@ -446,25 +380,25 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             <div className="flex-1 mb-6">
               <h2 className="text-lg font-semibold mb-4">Actions</h2>
               <div className="grid grid-cols-2 gap-3">
-                <button 
+                <button
                   onClick={() => handleActionButton('summary')}
                   className="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
                   Generate Summary
                 </button>
-                <button 
+                <button
                   onClick={() => handleActionButton('quiz')}
                   className="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
                   Create Quiz
                 </button>
-                <button 
+                <button
                   onClick={() => handleActionButton('keyPoints')}
                   className="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
                   Extract Key Points
                 </button>
-                <button 
+                <button
                   onClick={() => handleActionButton('slides')}
                   className="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
@@ -477,13 +411,13 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             <div className="flex-1">
               <h2 className="text-lg font-semibold mb-4">Tools</h2>
               <div className="space-y-3">
-                <button 
+                <button
                   onClick={() => handleQRCode()}
                   className="w-full p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
                   QR Code
                 </button>
-                <button 
+                <button
                   onClick={() => handleInstructorDashboard()}
                   className="w-full p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >

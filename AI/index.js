@@ -1,18 +1,13 @@
-<<<<<<< HEAD
 import { generateQuiz } from './simple-quiz-generator.ts';
 import { generateHTMLQuiz } from './quiz-to-html.js';
 import { getContentFromSource } from './pdf-processor.js';
 import { analyzeContent, displayAnalysis } from './content-analyzer.js';
 import fs from 'fs';
-=======
-import { generateQuiz } from './simple-quiz-generator.js';
->>>>>>> 332809d5ba16b89b269f1ed8a75030a0b01265aa
 
 async function main() {
   try {
     console.log('🚀 Starting Direct Gemini Quiz Generator\n');
 
-<<<<<<< HEAD
     // Check command line arguments
     const args = process.argv.slice(2);
     const generateHTML = args.includes('--html') || args.includes('-h');
@@ -55,13 +50,6 @@ async function main() {
       console.log('\n📋 Quiz Generation Complete!\n');
       console.log(JSON.stringify(result, null, 2));
     }
-=======
-    // Generate 6 questions (mix of multiple choice and true/false)
-    const result = await generateQuiz(6);
-
-    console.log('\n📋 Quiz Generation Complete!\n');
-    console.log(JSON.stringify(result, null, 2));
->>>>>>> 332809d5ba16b89b269f1ed8a75030a0b01265aa
 
   } catch (error) {
     console.error('❌ Application error:', error);

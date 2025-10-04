@@ -9,7 +9,6 @@
     "test": "node index.js"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@google/genai": "^1.22.0",
     "pdf-parse": "^2.1.7"
   },
@@ -22,11 +21,3 @@
   "author": "",
   "license": "MIT"
 }
-=======
-    "@google/genai": "^1.22.0"
-  },
-  "keywords": ["gemini", "langgraph", "quiz", "ai"],
-  "author": "",
-  "license": "MIT"
-}
->>>>>>> 332809d5ba16b89b269f1ed8a75030a0b01265aa
