@@ -2,6 +2,8 @@
 "use client";
 import { useCallback, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
+import { useRouter } from 'next/navigation';
+import { useFileStore } from './lib/store';
 
 //=== Logic ====
 
@@ -28,14 +30,26 @@ interface CreateClassModalProps {
 const CreateClassModal = ({ onClose }: CreateClassModalProps) => {
   // State to hold the uploaded files
   const [files, setFiles] = useState<File[]>([]);
+  const router = useRouter();
+  const setFilesForNewClass = useFileStore((state) => state.setFiles);
 
-  // This function will be called when files are dropped
   const onDrop = useCallback((acceptedFiles: File[]) => {
     // Here, you would handle the file upload logic.
     // For now, we'll just add them to our state.
     setFiles(prevFiles => [...prevFiles, ...acceptedFiles]);
     console.log(acceptedFiles);
   }, []);
+
+  const handleCreateClass = () => {
+    // 1. Save the files to our global store
+    setFilesForNewClass(files);
+
+    // 2. (Simulate) Create a unique ID for the new class
+    const newClassId = Date.now(); 
+
+    // 3. Navigate to the new dedicated page
+    router.push(`/class/${newClassId}`);
+  };
 
   // Initialize the dropzone hook
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
@@ -90,10 +104,14 @@ const CreateClassModal = ({ onClose }: CreateClassModalProps) => {
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const router = useRouter();
+  const setFilesForNewClass = useFileStore((state) => state.setFiles);
 
-  const classes: { name: string }[] = [
-    { name: 'Intro to Physics' },
-    { name: 'American History 101' },
+  // Temporary placeholder for classes
+  const classes = [
+    { name: "Math 101" },
+    { name: "Physics 201" },
+    { name: "Chemistry 301" },
   ];
 
   return (
