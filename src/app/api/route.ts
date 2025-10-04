@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { generateHTMLQuiz } from '../../../components/quiz-to-html.js';
-import { analyzeContent } from '../../../components/content-analyzer.js';
+import { generateHTMLQuiz } from '@/src/app/components/quiz-to-html';
+import { analyzeContent } from '@/src/app/components/content-analyzer';
 import fs from 'fs';
 import path from 'path';
 

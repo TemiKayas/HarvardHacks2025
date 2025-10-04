@@ -54,13 +54,12 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       const selectedFiles = classData.files.filter(f => f.selected);
       const pdfFiles = selectedFiles.filter(f => f.type === 'application/pdf');
 
-      if (pdfFiles.length === 0) {
-        alert('Please select PDF files for quiz generation');
+      if (pdfFiles.length > 0) {
+        // Has PDFs - direct them to use PDFQuiz component
+        alert('For PDF files, please use the "Generate Quiz from PDF" button in the Actions section');
         return;
       }
-
-      // Use PDF quiz component for PDF files
-      return;
+      // No PDFs - fall through to normal quiz generation below
     }
 
     setCurrentAction(action);
@@ -404,14 +403,14 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
               <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
               {/* PDF Quiz Generation */}
-              {classData?.files.some(f => f.selected && f.type === 'application/pdf') && (
-                <div className="mb-6">
-                  <PDFQuiz
-                    files={classData.files.filter(f => f.selected && f.type === 'application/pdf')}
-                    onQuizGenerated={handlePDFQuizGenerated}
-                  />
-                </div>
-              )}
+                {classData?.files.some(f => f.type === 'application/pdf') && (
+                    <div className="mb-6">
+                        <PDFQuiz
+                            files={classData.files.filter(f => f.type === 'application/pdf')}
+                            onQuizGenerated={handlePDFQuizGenerated}
+                        />
+                    </div>
+                )}
 
               <div className="grid grid-cols-2 gap-3">
                 <button
