@@ -1,22 +1,25 @@
 {
   "name": "harvardhacks2025",
   "version": "0.1.0",
+  "description": "Direct Gemini API quiz generator",
+  "main": "../src/app/components/index.js",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "node ../src/app/components/index.js"
   },
   "dependencies": {
-
-    "lucide-react": "^0.544.0",
-
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@google/genai": "^1.22.0",
     "@mui/material": "^7.3.4",
+    "lucide-react": "^0.544.0",
     "next": "15.5.4",
+    "pdf-parse": "^2.1.7",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-dropzone": "^14.3.8",
@@ -32,5 +35,14 @@
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "keywords": [
+    "gemini",
+    "langgraph",
+    "quiz",
+    "ai",
+    "next.js"
+  ],
+  "author": "",
+  "license": "MIT"
 }
