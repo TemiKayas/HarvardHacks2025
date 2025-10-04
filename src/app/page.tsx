@@ -124,7 +124,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {classes.map((cls) => (
             <Link href={`/class/${cls.id}`} key={cls.id}>
-              <ClassCard name={`Class ${cls.id}`} fileCount={cls.files.length} />
+              <ClassCard name={`${cls.name}`} fileCount={cls.files.length} />
             </Link>
           ))}
         </div>

@@ -1,13 +1,17 @@
 "use client";
 
-import { useClassStore } from '../../lib/store';
+import { useClassStore, renameClass } from '../../lib/store';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 
 export default function ClassPage({ params }: { params: { id: string } }) {
   const getClassById = useClassStore((state) => state.getClassById);
-  
   const classData = getClassById(params.id);
+  
+  //rename logic
+  const handleRename = () => {
+    renameClass(params.id);
+  };
 
   // This prevents hydration errors by waiting for the component to mount on the client
   const [hasMounted, setHasMounted] = useState(false);
@@ -25,16 +29,16 @@ export default function ClassPage({ params }: { params: { id: string } }) {
       
       {classData ? (
         <div>
-          <h1 className="text-3xl font-bold mb-2">Class Details</h1>
-          <p className="text-zinc-500 mb-6">Displaying content for class ID: {params.id}</p>
+            <h1 className="text-3xl font-bold mb-2 pl-2 rounded-lg border-transparent cursor-pointer border-2 hover:border-white transition duration-150 ease-in-out" onClick={handleRename}>{classData?.name}</h1>
+            <p className="text-zinc-500 mb-6">DevTool, ID: {params.id}</p>
           
-          <h2 className="text-xl font-semibold mb-4">Uploaded Files</h2>
+            <h2 className="text-xl font-semibold mb-4">Uploaded Files</h2>
 
-          <ul className="list-disc list-inside bg-white dark:bg-zinc-800/50 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
+            <ul className="list-disc list-inside bg-white dark:bg-zinc-800/50 p-4 rounded-lg border border-zinc-200 dark:border-zinc-700">
             {classData.files.map((file, index) => (
-              <li key={index} className="mb-1">{file.name} ({Math.round(file.size / 1024)} KB)</li>
+                <li key={index} className="mb-1">{file.name} ({Math.round(file.size / 1024)} KB)</li>
             ))}
-          </ul>
+            </ul>
         </div>
       ) : (
         <p className="text-center text-red-500 mt-12">Error: Could not find data for class ID: {params.id}</p>

@@ -11,6 +11,7 @@ export interface FileMeta {
 //class shape
 export interface Class {
   id: string;
+  name: string;
   files: FileMeta[];
 }
 
@@ -20,6 +21,19 @@ interface ClassStore {
   addClass: (newClass: Class) => void;
   getClassById: (id: string) => Class | undefined;
 }
+
+//rename class func
+export const renameClass = (id: string) => {
+    const newName = prompt('Enter new class name:');
+    if (newName) {
+        useClassStore.setState((state) => ({
+        classes: state.classes.map((classItem) =>
+            classItem.id === id ? { ...classItem, name: newName } : classItem
+        ),
+        }));
+        alert(`Class renamed to: ${newName}`);
+    }
+};
 
 export const useClassStore = create<ClassStore>()(
   // The 'persist' middleware wraps our store definition
