@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback, useState, useEffect, MouseEvent } from 'react';
+import { useCallback, useState, useEffect, MouseEvent as ReactMouseEvent, useRef } from 'react';
 import { useDropzone, FileWithPath } from 'react-dropzone';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useClassStore, Class, FileMeta } from './lib/store';
+import { useClassStore, Class, FileMeta, renameClass } from './lib/store';
 
 // === Component Definitions ===
 
@@ -17,20 +17,46 @@ const Navbar = () => (
 // MODIFIED: ClassCard is now a more complex component with its own state for the delete menu
 const ClassCard = ({ cls, onDelete }: { cls: Class; onDelete: (id: string) => void }) => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Handle clicking outside the menu to close it
+  useEffect(() => {
+    const handleClickOutside = (event: Event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [menuOpen]);
 
   // This function opens the menu but stops the click from navigating to the class page
-  const handleMenuClick = (e: MouseEvent) => {
+  const handleMenuClick = (e: ReactMouseEvent) => {
     e.stopPropagation(); // Prevents the Link from being triggered
     e.preventDefault(); // Prevents default browser behavior
     setMenuOpen(!menuOpen);
   };
 
   // This function handles the delete action
-  const handleDeleteClick = (e: MouseEvent) => {
+  const handleDeleteClick = (e: ReactMouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
     onDelete(cls.id);
     setMenuOpen(false); // Close the menu after deleting
+  };
+
+  // This function handles the rename action
+  const handleRenameClick = (e: ReactMouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    renameClass(cls.id);
+    setMenuOpen(false); // Close the menu after renaming
   };
 
   return (
@@ -48,7 +74,13 @@ const ClassCard = ({ cls, onDelete }: { cls: Class; onDelete: (id: string) => vo
 
       {/* Dropdown Menu (only appears if menuOpen is true) */}
       {menuOpen && (
-        <div className="absolute top-12 right-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg z-10">
+        <div ref={menuRef} className="absolute top-12 right-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg z-10">
+          <button 
+            onClick={handleRenameClick} 
+            className="block w-full text-left px-4 py-2 text-sm text-blue-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+          >
+            Rename Lesson
+          </button>
           <button 
             onClick={handleDeleteClick} 
             className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"

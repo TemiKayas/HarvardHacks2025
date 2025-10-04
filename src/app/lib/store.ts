@@ -21,6 +21,8 @@ interface ClassStore {
   addClass: (newClass: Class) => void;
   getClassById: (id: string) => Class | undefined;
   deleteClass: (id: string) => void;
+  addFileToClass: (classId: string, file: FileMeta) => void;
+  removeFileFromClass: (classId: string, fileIndex: number) => void;
 }
 
 //rename class func
@@ -52,6 +54,22 @@ export const useClassStore = create<ClassStore>()(
       },
       getClassById: (id) => {
         return get().classes.find((c) => c.id === id);
+      },
+      addFileToClass: (classId: string, file: FileMeta) => {
+        set((state) => ({
+          classes: state.classes.map((cls) =>
+            cls.id === classId ? { ...cls, files: [...cls.files, file] } : cls
+          ),
+        }));
+      },
+      removeFileFromClass: (classId: string, fileIndex: number) => {
+        set((state) => ({
+          classes: state.classes.map((cls) =>
+            cls.id === classId 
+              ? { ...cls, files: cls.files.filter((_, index) => index !== fileIndex) }
+              : cls
+          ),
+        }));
       },
     }),
     {
