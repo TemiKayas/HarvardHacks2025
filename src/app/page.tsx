@@ -10,7 +10,7 @@ import { useClassStore, Class, FileMeta } from './lib/store';
 
 const Navbar = () => (
   <nav className="bg-[gray] text-white text-3xl p-4 font-bold shadow-md">
-    TA+
+    StudySync
   </nav>
 );
 
