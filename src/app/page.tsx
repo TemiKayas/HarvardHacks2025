@@ -1,39 +1,69 @@
 "use client";
 
-import { useCallback, useState, useEffect } from 'react'; // FIX: Added useEffect
+import { useCallback, useState, useEffect, MouseEvent } from 'react';
 import { useDropzone, FileWithPath } from 'react-dropzone';
-import Button from '@mui/material/Button';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link'; // FIX: Added Link for navigation
-import { useClassStore, Class, FileMeta } from './lib/store'; // FIX: Import all necessary types
+import Link from 'next/link';
+import { useClassStore, Class, FileMeta } from './lib/store';
 
 // === Component Definitions ===
 
-// Navbar (No changes needed)
 const Navbar = () => (
   <nav className="bg-[gray] text-white text-3xl p-4 font-bold shadow-md">
     TA+
   </nav>
 );
 
-// ClassCard (No changes needed, but will be wrapped in a Link)
-const ClassCard = ({ name, fileCount }: { name: string; fileCount: number }) => (
-  <div className="bg-transparent bg-opacity-80 border border-zinc-200 rounded-lg p-6 cursor-pointer hover:shadow-xl hover:border-blue-500 transition-all duration-200">
-    <Image src='../../public/menu.png' alt='menu' width={50} height={50} className="mb-4" />
-    <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{name}</h3>
-    <p className="text-sm text-zinc-500">{fileCount} file(s)</p>
-  </div>
-);
+// MODIFIED: ClassCard is now a more complex component with its own state for the delete menu
+const ClassCard = ({ cls, onDelete }: { cls: Class; onDelete: (id: string) => void }) => {
+  const [menuOpen, setMenuOpen] = useState(false);
 
-// CreateClassModal Props
-interface CreateClassModalProps {
-  onClose: () => void;
-  addClass: (newClass: Class) => void; // FIX: Prop for the addClass function
-}
+  // This function opens the menu but stops the click from navigating to the class page
+  const handleMenuClick = (e: MouseEvent) => {
+    e.stopPropagation(); // Prevents the Link from being triggered
+    e.preventDefault(); // Prevents default browser behavior
+    setMenuOpen(!menuOpen);
+  };
 
-// CreateClassModal Component
-const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
+  // This function handles the delete action
+  const handleDeleteClick = (e: MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onDelete(cls.id);
+    setMenuOpen(false); // Close the menu after deleting
+  };
+
+  return (
+    <div className="relative bg-transparent bg-opacity-80 border border-zinc-200 rounded-lg p-6 hover:shadow-xl hover:border-blue-500 transition-all duration-200">
+      {/* The Link now wraps the main content area */}
+      <Link href={`/class/${cls.id}`} className="block cursor-pointer">
+        <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{cls.name}</h3>
+        <p className="text-sm text-zinc-500">{cls.files.length} file(s)</p>
+      </Link>
+      
+      {/* Three-dot menu button */}
+      <button onClick={handleMenuClick} className="absolute top-4 right-4 p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-700">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+      </button>
+
+      {/* Dropdown Menu (only appears if menuOpen is true) */}
+      {menuOpen && (
+        <div className="absolute top-12 right-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-md shadow-lg z-10">
+          <button 
+            onClick={handleDeleteClick} 
+            className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-zinc-100 dark:hover:bg-zinc-700"
+          >
+            Delete Lesson
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+
+// CreateClassModal Component (no changes needed from your version)
+const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass: (newClass: Class) => void; }) => {
   const [files, setFiles] = useState<File[]>([]);
   const router = useRouter();
 
@@ -44,24 +74,17 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
   const handleCreateClass = () => {
-    //Generate the ID ONCE and use it for both saving and navigating.
     const newClassId = String(Date.now());
-
-    //Convert the File array to the FileMeta array format the store expects.
     const fileMetas: FileMeta[] = files.map(f => ({
       name: f.name,
       size: f.size,
       type: f.type,
     }));
-
-    //Call the addClass function with the correctly shaped object.
     addClass({
       id: newClassId,
       files: fileMetas,
       name: 'Untitled Lesson',
     });
-
-    //Navigate using the SAME ID that was saved to the store.
     router.push(`/class/${newClassId}`);
   };
 
@@ -93,23 +116,25 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
   );
 };
 
+
 // === Main Page Component ===
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   
-  //Get the actual classes and the addClass function from the store.
+  // Get all necessary functions from the store
   const classes = useClassStore((state) => state.classes);
   const addClass = useClassStore((state) => state.addClass);
+  const deleteClass = useClassStore((state) => state.deleteClass);
 
-  //This pattern prevents errors when rendering content from localStorage.
+  // This pattern prevents errors when rendering content from localStorage
   const [hasMounted, setHasMounted] = useState(false);
   useEffect(() => {
     setHasMounted(true);
   }, []);
 
   if (!hasMounted) {
-    return null; // Or return a loading spinner
+    return null;
   }
 
   return (
@@ -126,16 +151,9 @@ export default function HomePage() {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((cls) => {
-            if (cls.name === '') {
-              cls.name = 'Untitled Lesson';
-            }
-            return (
-              <Link href={`/class/${cls.id}`} key={cls.id}>
-                <ClassCard name={`${cls.name}`} fileCount={cls.files.length} />
-              </Link>
-            );
-          })}
+          {classes.map((cls) => (
+            <ClassCard key={cls.id} cls={cls} onDelete={deleteClass} />
+          ))}
         </div>
       </main>
       {isModalOpen && <CreateClassModal onClose={() => setIsModalOpen(false)} addClass={addClass} />}

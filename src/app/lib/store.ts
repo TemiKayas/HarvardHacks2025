@@ -20,6 +20,7 @@ interface ClassStore {
   classes: Class[];
   addClass: (newClass: Class) => void;
   getClassById: (id: string) => Class | undefined;
+  deleteClass: (id: string) => void;
 }
 
 //rename class func
@@ -36,7 +37,6 @@ export const renameClass = (id: string) => {
 };
 
 export const useClassStore = create<ClassStore>()(
-  // The 'persist' middleware wraps our store definition
   persist(
     (set, get) => ({
       classes: [],
