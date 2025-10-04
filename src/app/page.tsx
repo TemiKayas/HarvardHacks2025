@@ -122,11 +122,16 @@ export default function HomePage() {
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.map((cls) => (
-            <Link href={`/class/${cls.id}`} key={cls.id}>
-              <ClassCard name={`${cls.name}`} fileCount={cls.files.length} />
-            </Link>
-          ))}
+          {classes.map((cls) => {
+            if (cls.name === '') {
+              cls.name = 'Untitled Class';
+            }
+            return (
+              <Link href={`/class/${cls.id}`} key={cls.id}>
+                <ClassCard name={`${cls.name}`} fileCount={cls.files.length} />
+              </Link>
+            );
+          })}
         </div>
       </main>
       {isModalOpen && <CreateClassModal onClose={() => setIsModalOpen(false)} addClass={addClass} />}
