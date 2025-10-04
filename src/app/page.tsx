@@ -1,15 +1,12 @@
-//Imports ====
+//=== Imports ====
 "use client";
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
+import { useDropzone } from 'react-dropzone';
 
-//Logic ====
+//=== Logic ====
 
 interface ClassCardProps {
   name: string;
-}
-
-interface CreateClassModalProps {
-  onClose: () => void;
 }
 
 const Navbar = () => (
@@ -24,24 +21,72 @@ const ClassCard = ({ name }: ClassCardProps) => (
   </div>
 );
 
-const CreateClassModal = ({ onClose }: CreateClassModalProps) => (
-  <div className="fixed inset-0 bg-black/60 flex justify-center items-center">
-    <div className="bg-white dark:bg-zinc-900 p-8 rounded-lg shadow-2xl w-full max-w-md">
-      <h2 className="text-2xl font-bold mb-4">Create a New Class</h2>
-      <input 
-        type="text" 
-        placeholder="Enter class name..."
-        className="w-full p-2 border border-zinc-300 dark:border-zinc-600 rounded bg-zinc-50 dark:bg-zinc-800 mb-4"
-      />
-      <div className="flex justify-end gap-4">
-        <button onClick={onClose} className="px-4 py-2 rounded font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800">Cancel</button>
-        <button className="bg-blue-600 text-white font-semibold px-4 py-2 rounded hover:bg-blue-700">Create</button>
+interface CreateClassModalProps {
+  onClose: () => void;
+}
+
+const CreateClassModal = ({ onClose }: CreateClassModalProps) => {
+  // State to hold the uploaded files
+  const [files, setFiles] = useState<File[]>([]);
+
+  // This function will be called when files are dropped
+  const onDrop = useCallback((acceptedFiles: File[]) => {
+    // Here, you would handle the file upload logic.
+    // For now, we'll just add them to our state.
+    setFiles(prevFiles => [...prevFiles, ...acceptedFiles]);
+    console.log(acceptedFiles);
+  }, []);
+
+  // Initialize the dropzone hook
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex justify-center items-center">
+      <div className="bg-white dark:bg-zinc-900 p-8 rounded-lg shadow-2xl w-full max-w-2xl">
+        <h2 className="text-2xl font-bold mb-4">Create New Class & Upload Files</h2>
+        
+        {/*Dropzone*/}
+        <div 
+          {...getRootProps()} 
+          className={`flex flex-col items-center justify-center w-full h-64 p-4 border-2 border-dashed rounded-lg cursor-pointer
+            ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-300 dark:border-zinc-600'}
+            transition-colors`}
+        >
+          <input {...getInputProps()} />
+          {isDragActive ? (
+            <p className="text-blue-500">Drop the files here ...</p>
+          ) : (
+            <p className="text-zinc-500 dark:text-zinc-400">
+              Drag & drop files here, or{' '}
+              <span className="font-semibold text-blue-600">click to browse</span>
+            </p>
+          )}
+        </div>
+        
+        {/* Display the names of the uploaded files */}
+        {files.length > 0 && (
+          <div className="mt-4">
+            <h4 className="font-semibold">Uploaded Files:</h4>
+            <ul className="list-disc list-inside bg-zinc-50 dark:bg-zinc-800/50 p-2 rounded">
+              {files.map((file, i) => (
+                <li key={i}>{file.name}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="flex justify-end gap-4 mt-6">
+          <button onClick={onClose} className="px-4 py-2 rounded font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800">Cancel</button>
+          <button className="bg-blue-600 text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 disabled:bg-zinc-400" disabled={files.length === 0}>
+            Create Class
+          </button>
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-//Page Export ====
+//=== Page Render ====
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
