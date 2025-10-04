@@ -45,6 +45,11 @@ export const useClassStore = create<ClassStore>()(
           classes: [...state.classes, newClass],
         }));
       },
+      deleteClass: (id: string) => {
+        set((state) => ({
+          classes: state.classes.filter((cls) => cls.id !== id),
+        }));
+      },
       getClassById: (id) => {
         return get().classes.find((c) => c.id === id);
       },

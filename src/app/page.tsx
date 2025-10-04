@@ -2,6 +2,8 @@
 
 import { useCallback, useState, useEffect } from 'react'; // FIX: Added useEffect
 import { useDropzone, FileWithPath } from 'react-dropzone';
+import Button from '@mui/material/Button';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link'; // FIX: Added Link for navigation
 import { useClassStore, Class, FileMeta } from './lib/store'; // FIX: Import all necessary types
@@ -18,6 +20,7 @@ const Navbar = () => (
 // ClassCard (No changes needed, but will be wrapped in a Link)
 const ClassCard = ({ name, fileCount }: { name: string; fileCount: number }) => (
   <div className="bg-transparent bg-opacity-80 border border-zinc-200 rounded-lg p-6 cursor-pointer hover:shadow-xl hover:border-blue-500 transition-all duration-200">
+    <Image src='../../public/menu.png' alt='menu' width={50} height={50} className="mb-4" />
     <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{name}</h3>
     <p className="text-sm text-zinc-500">{fileCount} file(s)</p>
   </div>
@@ -55,6 +58,7 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
     addClass({
       id: newClassId,
       files: fileMetas,
+      name: 'Untitled Lesson',
     });
 
     //Navigate using the SAME ID that was saved to the store.
@@ -124,7 +128,7 @@ export default function HomePage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {classes.map((cls) => {
             if (cls.name === '') {
-              cls.name = 'Untitled Class';
+              cls.name = 'Untitled Lesson';
             }
             return (
               <Link href={`/class/${cls.id}`} key={cls.id}>
