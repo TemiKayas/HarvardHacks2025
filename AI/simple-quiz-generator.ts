@@ -177,7 +177,7 @@ ${contentToUse}
 
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-expect-error
-        const quiz = JSON.parse(response.text());
+        const quiz = JSON.parse(response.text);
 
         return {
             status: "success",
