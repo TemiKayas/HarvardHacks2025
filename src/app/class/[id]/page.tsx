@@ -17,6 +17,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const addChatMessage = useClassStore((state) => state.addChatMessage);
   const updateQuizQuestion = useClassStore((state) => state.updateQuizQuestion);
   const deleteQuizQuestion = useClassStore((state) => state.deleteQuizQuestion);
+  const addStudentResponse = useClassStore((state) => state.addStudentResponse);
 
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -43,10 +44,48 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       
       // Read file content for AI processing
       try {
-        const content = await file.text();
-        fileMeta.content = content;
+        console.log('Processing file:', { name: file.name, type: file.type, size: file.size });
+        
+        if (file.type === 'application/pdf') {
+          console.log('Processing PDF file...');
+          // For PDF files, we'll process them on the server
+          const formData = new FormData();
+          formData.append('file', file);
+          
+          const response = await fetch('/api/process-pdf', {
+            method: 'POST',
+            body: formData,
+          });
+          
+          if (response.ok) {
+            const result = await response.json();
+            console.log('PDF processing result:', { 
+              contentLength: result.content?.length || 0,
+              pages: result.pages,
+              hasContent: !!result.content 
+            });
+            fileMeta.content = result.content;
+          } else {
+            const errorText = await response.text();
+            console.error('Error processing PDF:', errorText);
+            fileMeta.content = ''; // Set empty content on error
+          }
+        } else {
+          console.log('Processing text file...');
+          // For text files
+          const content = await file.text();
+          console.log('Text file content length:', content.length);
+          fileMeta.content = content;
+        }
+        
+        console.log('File processing complete:', { 
+          name: fileMeta.name, 
+          hasContent: !!fileMeta.content,
+          contentLength: fileMeta.content?.length || 0 
+        });
       } catch (error) {
         console.error('Error reading file:', error);
+        fileMeta.content = ''; // Set empty content on error
       }
       
       addFileToClass(resolvedParams.id, fileMeta);
@@ -74,8 +113,16 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const generateAutoTitle = async () => {
     if (!classData?.files.length) return;
     
-    const selectedFiles = classData.files.filter(f => f.selected);
-    const content = selectedFiles.map(f => f.content || '').join('\n\n');
+    // Use all files for title generation, not just selected ones
+    const content = classData.files.map(f => f.content || '').join('\n\n');
+    
+    console.log('Generating title with content length:', content.length);
+    console.log('Files:', classData.files.map(f => ({ name: f.name, hasContent: !!f.content })));
+    
+    if (!content.trim()) {
+      console.warn('No content available for title generation');
+      return;
+    }
     
     try {
       const response = await fetch('/api/gemini', {
@@ -85,6 +132,8 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       });
       
       const { title } = await response.json();
+      console.log('Generated title:', title);
+      
       // Update the class name directly in the store
       useClassStore.setState((state) => ({
         classes: state.classes.map((cls) =>
@@ -125,6 +174,21 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     const selectedFiles = classData.files.filter(f => f.selected);
     const content = selectedFiles.map(f => f.content || '').join('\n\n');
     
+    console.log('Generating content for action:', currentAction);
+    console.log('Selected files:', selectedFiles.map(f => ({ name: f.name, hasContent: !!f.content, contentLength: f.content?.length || 0 })));
+    console.log('Total content length:', content.length);
+    console.log('Details prompt:', detailPrompt);
+    
+    if (!content.trim()) {
+      console.error('No content available for generation');
+      addChatMessage(resolvedParams.id, {
+        role: 'assistant',
+        content: 'No content available from selected files. Please ensure files are properly uploaded and contain text.'
+      });
+      setIsGenerating(false);
+      return;
+    }
+    
     try {
       const response = await fetch('/api/gemini', {
         method: 'POST',
@@ -137,10 +201,12 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       });
       
       const result = await response.json();
+      console.log('API response:', result);
       
       // Update store with generated content
       const generatedContent: GeneratedContent = {
         [currentAction]: result[currentAction] || result.quiz || result.summary || result.keyPoints || result.slides,
+        htmlContent: result.htmlContent,
         lastGenerated: currentAction
       };
       
@@ -209,6 +275,41 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const handleInstructorDashboard = () => {
     // Navigate to instructor dashboard
     window.open(`/instructor/${resolvedParams.id}`, '_blank');
+  };
+
+  // Student submission handler
+  const handleStudentSubmission = async (studentName: string, answers: { [key: string]: string }) => {
+    try {
+      const response = await fetch('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'submitQuiz',
+          classId: resolvedParams.id,
+          studentName,
+          answers
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Add to store
+        addStudentResponse(resolvedParams.id, result.response);
+        
+        // Show success message
+        addChatMessage(resolvedParams.id, {
+          role: 'assistant',
+          content: `Quiz submitted successfully for ${studentName}! Score: ${result.response.score}%`
+        });
+      }
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
+      addChatMessage(resolvedParams.id, {
+        role: 'assistant',
+        content: 'Sorry, there was an error submitting the quiz. Please try again.'
+      });
+    }
   };
 
   // This prevents hydration errors by waiting for the component to mount on the client
@@ -293,76 +394,32 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             
             {/* Mobile Emulator Preview */}
             <div className="flex-1 mb-4">
-              {classData.generatedContent && (
+              {classData.generatedContent?.htmlContent && (
                 <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 max-w-sm mx-auto">
                   <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden" style={{ width: '320px', height: '500px' }}>
-                    {/* Mobile Header */}
+                    {/* Mobile Content with HTML Rendering */}
+                    <div 
+                      className="h-full overflow-y-auto"
+                      dangerouslySetInnerHTML={{ __html: classData.generatedContent.htmlContent }}
+                      style={{ 
+                        fontSize: '14px',
+                        lineHeight: '1.4',
+                        padding: '16px'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
+              
+              {/* Fallback for non-HTML content */}
+              {classData.generatedContent && !classData.generatedContent.htmlContent && (
+                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 max-w-sm mx-auto">
+                  <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden" style={{ width: '320px', height: '500px' }}>
                     <div className="bg-blue-600 text-white p-3 text-center">
                       <h3 className="font-semibold">{classData.name}</h3>
                     </div>
                     
-                    {/* Mobile Content */}
                     <div className="p-4 h-full overflow-y-auto">
-                      {classData.generatedContent.quiz && (
-                        <div className="space-y-4">
-                          {classData.generatedContent.quiz.map((question, index) => (
-                            <div key={index} className="border-b pb-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-medium text-sm">{question.question}</h4>
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => setEditingQuestion(index)}
-                                    className="text-xs text-blue-600 hover:text-blue-800"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => deleteQuizQuestion(resolvedParams.id, index)}
-                                    className="text-xs text-red-600 hover:text-red-800"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-                              
-                              {question.type === 'MCQ' ? (
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex items-center">
-                                    <span className="w-4">A)</span>
-                                    <span className="ml-2">{question.answerA}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="w-4">B)</span>
-                                    <span className="ml-2">{question.answerB}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="w-4">C)</span>
-                                    <span className="ml-2">{question.answerC}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="w-4">D)</span>
-                                    <span className="ml-2">{question.answerD}</span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-xs">
-                                  <div className="flex gap-4">
-                                    <label className="flex items-center">
-                                      <input type="radio" name={`q${index}`} className="mr-1" />
-                                      True
-                                    </label>
-                                    <label className="flex items-center">
-                                      <input type="radio" name={`q${index}`} className="mr-1" />
-                                      False
-                                    </label>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      
                       {classData.generatedContent.summary && (
                         <div className="text-sm">
                           <h4 className="font-semibold mb-2">Summary</h4>

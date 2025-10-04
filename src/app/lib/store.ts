@@ -22,12 +22,22 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+//student response types
+export interface StudentResponse {
+  studentName: string;
+  answers: { [questionId: string]: string };
+  timestamp: string;
+  score?: number;
+}
+
 export interface GeneratedContent {
   quiz?: QuizQuestion[];
   summary?: string;
   keyPoints?: string;
   slides?: { title: string; content: string }[];
   lastGenerated?: string; // Track what was last generated
+  htmlContent?: string; // Store HTML output from Gemini
+  studentResponses?: StudentResponse[]; // Store student submissions
 }
 
 //class shape
@@ -52,6 +62,7 @@ interface ClassStore {
   addChatMessage: (classId: string, message: { role: 'user' | 'assistant'; content: string }) => void;
   updateQuizQuestion: (classId: string, questionIndex: number, question: QuizQuestion) => void;
   deleteQuizQuestion: (classId: string, questionIndex: number) => void;
+  addStudentResponse: (classId: string, response: StudentResponse) => void;
 }
 
 //rename class func
@@ -161,6 +172,21 @@ export const useClassStore = create<ClassStore>()(
                   generatedContent: {
                     ...cls.generatedContent,
                     quiz: cls.generatedContent.quiz.filter((_, index) => index !== questionIndex)
+                  }
+                }
+              : cls
+          ),
+        }));
+      },
+      addStudentResponse: (classId: string, response: StudentResponse) => {
+        set((state) => ({
+          classes: state.classes.map((cls) =>
+            cls.id === classId
+              ? { 
+                  ...cls, 
+                  generatedContent: {
+                    ...cls.generatedContent,
+                    studentResponses: [...(cls.generatedContent?.studentResponses || []), response]
                   }
                 }
               : cls

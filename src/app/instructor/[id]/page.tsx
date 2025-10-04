@@ -77,33 +77,34 @@ export default function InstructorDashboard({ params }: { params: Promise<{ id: 
           </div>
         </div>
 
-        {/* Recent Activity */}
+        {/* Student Responses */}
         <div className="bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700">
           <div className="p-6 border-b border-zinc-200 dark:border-zinc-700">
-            <h2 className="text-xl font-semibold">Recent Activity</h2>
+            <h2 className="text-xl font-semibold">Student Responses</h2>
           </div>
           <div className="p-6">
-            <div className="space-y-4">
-              {stats.recentActivity.map((activity, index) => (
-                <div key={index} className="flex items-center justify-between p-4 bg-zinc-50 dark:bg-zinc-700 rounded-lg">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-semibold">
-                      {activity.student.split(' ').map(n => n[0]).join('')}
+            {classData.generatedContent?.studentResponses && classData.generatedContent.studentResponses.length > 0 ? (
+              <div className="space-y-4">
+                {classData.generatedContent.studentResponses.map((response, index) => (
+                  <div key={index} className="p-4 bg-zinc-50 dark:bg-zinc-700 rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-medium">{response.studentName}</h3>
+                      <div className="text-right">
+                        <p className="font-semibold text-green-600">{response.score}%</p>
+                        <p className="text-sm text-zinc-500">
+                          {new Date(response.timestamp).toLocaleString()}
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium">{activity.student}</p>
-                      <p className="text-sm text-zinc-500">{activity.action}</p>
+                    <div className="text-sm text-zinc-600 dark:text-zinc-400">
+                      <p>Answers submitted: {Object.keys(response.answers).length} questions</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    {activity.score && (
-                      <p className="font-semibold text-green-600">{activity.score}%</p>
-                    )}
-                    <p className="text-sm text-zinc-500">{activity.time}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-zinc-500 text-center py-8">No student responses yet</p>
+            )}
           </div>
         </div>
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from '@google/genai';
+import pdf from 'pdf-parse';
 
 // Initialize Gemini with API key from environment
 const apiKey = process.env.GEMINI_API_KEY;
@@ -32,6 +33,8 @@ export async function POST(request: NextRequest) {
         return await generateSlides(content, details);
       case 'chat':
         return await chatWithGemini(content, details);
+      case 'submitQuiz':
+        return await submitQuizResponse(request);
       default:
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
     }
@@ -45,6 +48,9 @@ export async function POST(request: NextRequest) {
 
 async function generateTitle(content: string) {
   try {
+    console.log('Generating title with content length:', content.length);
+    console.log('Content preview:', content.substring(0, 200) + '...');
+    
     const prompt = `Based on the following content, generate a concise and informative lesson title (maximum 50 characters). The title should capture the main subject or topic:
 
 ${content}
@@ -56,7 +62,10 @@ Return only the title text, no quotes or additional formatting.`;
       contents: prompt,
     });
 
-    return NextResponse.json({ title: response.text.trim() });
+    const title = response.text.trim();
+    console.log('Generated title:', title);
+    
+    return NextResponse.json({ title });
   } catch (error) {
     console.error('Error generating title:', error);
     return NextResponse.json({ error: 'Failed to generate title' }, { status: 500 });
@@ -64,66 +73,48 @@ Return only the title text, no quotes or additional formatting.`;
 }
 
 async function generateQuiz(content: string, details: string) {
-  const mcqQuestionSchema = {
-    type: Type.OBJECT,
-    properties: {
-      question: { type: Type.STRING, description: "The multiple choice question text" },
-      type: { type: Type.STRING, enum: ["MCQ"], description: "Question type - always MCQ" },
-      answerA: { type: Type.STRING, description: "First answer option" },
-      answerB: { type: Type.STRING, description: "Second answer option" },
-      answerC: { type: Type.STRING, description: "Third answer option" },
-      answerD: { type: Type.STRING, description: "Fourth answer option" },
-      correctAnswer: { type: Type.STRING, enum: ["A", "B", "C", "D"], description: "The correct answer letter" },
-      explanation: { type: Type.STRING, description: "Brief explanation of why the answer is correct" }
-    },
-    required: ["question", "type", "answerA", "answerB", "answerC", "answerD", "correctAnswer", "explanation"]
-  };
-
-  const tfQuestionSchema = {
-    type: Type.OBJECT,
-    properties: {
-      question: { type: Type.STRING, description: "The true/false question text" },
-      type: { type: Type.STRING, enum: ["TF"], description: "Question type - always TF" },
-      correctAnswer: { type: Type.STRING, enum: ["true", "false"], description: "The correct answer - true or false" },
-      explanation: { type: Type.STRING, description: "Brief explanation of why the answer is correct" }
-    },
-    required: ["question", "type", "correctAnswer", "explanation"]
-  };
-
-  const quizSchema = {
-    type: Type.OBJECT,
-    properties: {
-      questions: {
-        type: Type.ARRAY,
-        items: { oneOf: [mcqQuestionSchema, tfQuestionSchema] }
-      }
-    },
-    required: ["questions"]
-  };
-
-  const prompt = `Generate quiz questions based on the following content. ${details ? `Additional requirements: ${details}` : ''}
+  try {
+    console.log('Generating quiz with content length:', content.length);
+    console.log('Content preview:', content.substring(0, 200) + '...');
+    console.log('Details:', details);
+    
+    const prompt = `Generate a mobile-friendly quiz in HTML format based on the following content. ${details ? `Additional requirements: ${details}` : ''}
 
 Content:
 ${content}
 
-Include both multiple choice and true/false questions. Mix them evenly. Generate questions ONLY about the content provided.`;
+Requirements:
+1. Generate EXACTLY 5-8 quiz questions based ONLY on the provided content
+2. Include both multiple choice and true/false questions (mix them evenly)
+3. Return ONLY HTML code that will be displayed in a mobile viewport
+4. The HTML should include:
+   - A title at the top
+   - Each question with proper form elements (radio buttons for MCQ, radio buttons for T/F, text inputs for fill-in)
+   - A student name input field
+   - A submit button at the bottom
+   - Proper mobile styling with responsive design
+5. Use semantic HTML with proper form structure
+6. Include data attributes for question IDs and correct answers for grading
+7. Style it to look clean and professional on mobile devices
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash-exp',
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: quizSchema
-    }
-  });
+Return ONLY the HTML code, no explanations or additional text.`;
 
-  try {
-    const quiz = JSON.parse(response.text);
-    return NextResponse.json({ quiz: quiz.questions });
-  } catch (parseError) {
-    console.error('Error parsing quiz response:', parseError);
-    console.error('Response text:', response.text);
-    return NextResponse.json({ error: 'Failed to parse quiz response' }, { status: 500 });
+    const response = await ai!.models.generateContent({
+      model: 'gemini-2.0-flash-exp',
+      contents: prompt,
+    });
+
+    const htmlContent = response.text.trim();
+    console.log('Generated HTML content length:', htmlContent.length);
+    console.log('HTML preview:', htmlContent.substring(0, 200) + '...');
+
+    return NextResponse.json({ 
+      htmlContent,
+      quiz: [] // Keep for backward compatibility
+    });
+  } catch (error) {
+    console.error('Error generating quiz:', error);
+    return NextResponse.json({ error: 'Failed to generate quiz' }, { status: 500 });
   }
 }
 
@@ -211,4 +202,30 @@ Provide a helpful response that assists with educational content creation and mo
   });
 
   return NextResponse.json({ response: response.text });
+}
+
+async function submitQuizResponse(request: NextRequest) {
+  try {
+    const { classId, studentName, answers } = await request.json();
+    
+    // Calculate score based on correct answers
+    // This would need to be implemented based on the quiz structure
+    const score = Math.floor(Math.random() * 40) + 60; // Placeholder scoring
+    
+    const response = {
+      studentName,
+      answers,
+      timestamp: new Date().toISOString(),
+      score
+    };
+    
+    return NextResponse.json({ 
+      success: true, 
+      response,
+      message: 'Quiz submitted successfully!' 
+    });
+  } catch (error) {
+    console.error('Error submitting quiz:', error);
+    return NextResponse.json({ error: 'Failed to submit quiz' }, { status: 500 });
+  }
 }
