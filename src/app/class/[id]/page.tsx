@@ -3,6 +3,7 @@
 import { useClassStore, renameClass, FileMeta, QuizQuestion, GeneratedContent } from '../../lib/store';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import PDFQuiz from '../../components/pdf-quiz/pdf-quiz';
 
 export default function ClassPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -48,12 +49,25 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       return;
     }
 
+    // Special handling for quiz generation using PDF pipeline
+    if (action === 'quiz') {
+      const selectedFiles = classData.files.filter(f => f.selected);
+      const pdfFiles = selectedFiles.filter(f => f.type === 'application/pdf');
+
+      if (pdfFiles.length === 0) {
+        alert('Please select PDF files for quiz generation');
+        return;
+      }
+
+      // Use PDF quiz component for PDF files
+      return;
+    }
+
     setCurrentAction(action);
     setShowDetailPrompt(true);
 
     // Set default prompts based on action
     const prompts = {
-      'quiz': 'Please enter any details related to the quiz such as the number of questions desired, multiple choice/true or false/fill in the blank amounts, or specific material the quiz should be on.',
       'summary': 'Please enter any specific requirements for the summary such as length, focus areas, or particular aspects to emphasize.',
       'keyPoints': 'Please enter any specific requirements for the key points such as number of points, focus areas, or particular aspects to highlight.',
       'slides': 'Please enter any specific requirements for the slides such as number of slides, presentation style, or particular topics to cover.'
@@ -155,6 +169,15 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const handleInstructorDashboard = () => {
     // Navigate to instructor dashboard
     window.open(`/instructor/${resolvedParams.id}`, '_blank');
+  };
+
+  // Handle PDF quiz generation
+  const handlePDFQuizGenerated = (quizPath: string, analysis: any) => {
+    // Add a chat message about the successful generation
+    addChatMessage(resolvedParams.id, {
+      role: 'assistant',
+      content: `✅ PDF Quiz generated successfully! Content analysis found: ${analysis.contentTypes.join(', ')}. The quiz has been opened in a new tab.`
+    });
   };
 
   // This prevents hydration errors by waiting for the component to mount on the client
@@ -379,6 +402,17 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             {/* Actions Section - Top Half */}
             <div className="flex-1 mb-6">
               <h2 className="text-lg font-semibold mb-4">Actions</h2>
+
+              {/* PDF Quiz Generation */}
+              {classData?.files.some(f => f.selected && f.type === 'application/pdf') && (
+                <div className="mb-6">
+                  <PDFQuiz
+                    files={classData.files.filter(f => f.selected && f.type === 'application/pdf')}
+                    onQuizGenerated={handlePDFQuizGenerated}
+                  />
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleActionButton('summary')}
