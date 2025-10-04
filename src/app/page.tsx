@@ -54,6 +54,7 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
     //Call the addClass function with the correctly shaped object.
     addClass({
       id: newClassId,
+      name: 'Untitled Class',
       files: fileMetas,
     });
 
