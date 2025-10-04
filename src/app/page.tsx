@@ -66,8 +66,8 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
     <div className="fixed inset-0 bg-black/60 flex justify-center items-center">
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-lg shadow-2xl w-full max-w-2xl">
         <h2 className="text-2xl font-bold mb-4">Create New Class & Upload Files</h2>
-        <div 
-          {...getRootProps()} 
+        <div
+          {...getRootProps()}
           className={`flex flex-col items-center justify-center w-full h-64 p-4 border-2 border-dashed rounded-lg cursor-pointer ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-300 dark:border-zinc-600'} transition-colors`}
         >
           <input {...getInputProps()} />
@@ -94,7 +94,7 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  
+
   //Get the actual classes and the addClass function from the store.
   const classes = useClassStore((state) => state.classes);
   const addClass = useClassStore((state) => state.addClass);
@@ -115,7 +115,7 @@ export default function HomePage() {
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Your Classes</h1>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="bg-blue-600 text-white font-semibold rounded-lg shadow-md px-5 py-2.5 hover:bg-blue-700 transition-colors"
           >
