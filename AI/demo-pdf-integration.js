@@ -98,7 +98,7 @@ function demoPDFIntegration() {
     console.log('✅ Fallback to default AI content if no source provided');
 
     console.log('\n🎉 PDF Content Integration Demo Complete!');
-    console.log('💡 Add your API key to felix.api to test with real quiz generation');
+    console.log('💡 Add your API key to key.api to test with real quiz generation');
 
   } catch (error) {
     console.error('❌ Demo failed:', error);

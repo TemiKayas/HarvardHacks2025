@@ -8,8 +8,8 @@ The quiz generator now supports creating quizzes from PDF files, lecture slides,
 
 ### 1. **Add Your API Key**
 ```bash
-# Create felix.api file with your Google Gemini API key
-echo "YOUR_API_KEY_HERE" > felix.api
+# Create key.api file with your Google Gemini API key
+echo "YOUR_API_KEY_HERE" > key.api
 ```
 
 ### 2. **Generate Quiz from PDF File**

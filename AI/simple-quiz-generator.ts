@@ -7,7 +7,7 @@ export async function generateQuiz(
 ) {
     try {
         // Initialize Gemini
-        const apiKey = fs.readFileSync("./felix.api", "utf8").trim();
+        const apiKey = fs.readFileSync("./key.api", "utf8").trim();
         const ai = new GoogleGenAI({ apiKey });
 
         // Define distinct schemas for each question type

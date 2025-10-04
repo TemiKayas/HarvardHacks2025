@@ -4,7 +4,7 @@ import fs from 'fs';
 async function generateLessonPlan(numItems = 10) {
   try {
     // Initialize Gemini
-    const apiKey = fs.readFileSync('./felix.api', 'utf8').trim();
+    const apiKey = fs.readFileSync('./key.api', 'utf8').trim();
     const ai = new GoogleGenAI({ apiKey });
 
     // Read PDF file

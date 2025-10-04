@@ -19,7 +19,7 @@ The development of AI has raised important ethical considerations, including con
 async function generatePoll(numOptions = 4) {
   try {
     // Initialize Gemini
-    const apiKey = fs.readFileSync('./felix.api', 'utf8').trim();
+    const apiKey = fs.readFileSync('./key.api', 'utf8').trim();
     const ai = new GoogleGenAI({ apiKey });
 
     // Define poll schema for 2 options
