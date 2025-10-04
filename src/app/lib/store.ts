@@ -1,12 +1,12 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
-//file metadata
-export interface FileMeta {
+//file data structure
+export interface FileData {
   name: string;
   size: number;
   type: string;
-  content?: string; // Store file content for AI processing
+  extractedText?: string; // Store extracted text from PDF processing
   selected?: boolean; // Track if file is selected for AI analysis
 }
 
@@ -22,11 +22,16 @@ export interface QuizQuestion {
   explanation: string;
 }
 
+export interface Flashcard {
+  front: string;
+  back: string;
+}
+
 export interface GeneratedContent {
   quiz?: QuizQuestion[];
   summary?: string;
   keyPoints?: string;
-  slides?: { title: string; content: string }[];
+  flashcards?: Flashcard[];
   lastGenerated?: string; // Track what was last generated
 }
 
@@ -34,7 +39,7 @@ export interface GeneratedContent {
 export interface Class {
   id: string;
   name: string;
-  files: FileMeta[];
+  files: FileData[];
   generatedContent?: GeneratedContent;
   chatHistory?: { role: 'user' | 'assistant'; content: string }[];
 }
@@ -45,7 +50,7 @@ interface ClassStore {
   addClass: (newClass: Class) => void;
   getClassById: (id: string) => Class | undefined;
   deleteClass: (id: string) => void;
-  addFileToClass: (classId: string, file: FileMeta) => void;
+  addFileToClass: (classId: string, file: FileData) => void;
   removeFileFromClass: (classId: string, fileIndex: number) => void;
   toggleFileSelection: (classId: string, fileIndex: number) => void;
   updateClassGeneratedContent: (classId: string, content: GeneratedContent) => void;
@@ -84,7 +89,7 @@ export const useClassStore = create<ClassStore>()(
       getClassById: (id) => {
         return get().classes.find((c) => c.id === id);
       },
-      addFileToClass: (classId: string, file: FileMeta) => {
+      addFileToClass: (classId: string, file: FileData) => {
         set((state) => ({
           classes: state.classes.map((cls) =>
             cls.id === classId ? { ...cls, files: [...cls.files, file] } : cls

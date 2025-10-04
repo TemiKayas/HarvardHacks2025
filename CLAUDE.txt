@@ -1,0 +1,786 @@
+================================================================================
+STUDYSYNC - COMPREHENSIVE PROJECT DOCUMENTATION
+================================================================================
+Last Updated: 2025-10-04
+Project: HarvardHacks2025 - AI-Powered Educational Content Generator
+
+================================================================================
+TABLE OF CONTENTS
+================================================================================
+1. Project Overview
+2. Architecture & Tech Stack
+3. Data Flow & Storage
+4. File Structure
+5. Core Features
+6. API Endpoints
+7. Component Details
+8. PDF Processing Pipeline
+9. Quiz Generation Flow
+10. LocalStorage Schema
+11. Future Implementations
+
+================================================================================
+1. PROJECT OVERVIEW
+================================================================================
+
+StudySync is a Next.js-based educational platform that allows instructors to:
+- Upload PDF lecture materials
+- Generate interactive quizzes from PDF content
+- Create summaries, key points, and slides
+- Manage multiple classes/lessons
+- Access instructor dashboards
+- Generate QR codes for student access
+
+The application uses Google's Gemini AI API for content generation and
+pdf-parse library for PDF text extraction.
+
+================================================================================
+2. ARCHITECTURE & TECH STACK
+================================================================================
+
+FRONTEND:
+- Next.js 15.5.4 (App Router)
+- React 19.1.0
+- TypeScript
+- Tailwind CSS 4
+- Zustand (state management with localStorage persistence)
+- react-dropzone (file uploads)
+
+BACKEND:
+- Next.js API Routes (serverless functions)
+- Node.js runtime
+- pdf-parse (PDF text extraction)
+- @google/genai (Gemini AI API)
+
+KEY LIBRARIES:
+- @emotion/react & @emotion/styled (styling)
+- @mui/material (UI components)
+- lucide-react (icons)
+
+================================================================================
+3. DATA FLOW & STORAGE
+================================================================================
+
+PDF UPLOAD FLOW:
+1. User uploads PDF via drag-and-drop (src/app/page.tsx:104-139)
+2. FileReader API converts PDF to base64 (client-side)
+3. Base64 sent to /api/process-pdf endpoint
+4. Server uses pdf-parse to extract text from base64
+5. Extracted text returned to frontend
+6. Text stored in Zustand store → persisted to localStorage
+7. Original PDF base64 is DISCARDED (not stored)
+
+QUIZ GENERATION FLOW:
+1. User selects files and clicks "Create Quiz"
+2. Extracted text from selected PDFs retrieved from store
+3. Text sent to /api/generate-quiz endpoint
+4. Server analyzes content (content-analyzer.js)
+5. Server generates quiz using Gemini API (simple-quiz-generator.ts)
+6. Quiz JSON returned to frontend
+7. Quiz stored in Zustand and displayed in QuizDisplay component
+
+LOCALSTORAGE STRUCTURE:
+Key: 'class-storage'
+Location: Browser localStorage (inspectable via DevTools → Application → Local Storage)
+
+Format:
+{
+  "state": {
+    "classes": [
+      {
+        "id": "1733345234567",
+        "name": "Untitled Lesson",
+        "files": [
+          {
+            "name": "lecture.pdf",
+            "size": 467330,
+            "type": "application/pdf",
+            "extractedText": "Full extracted text content here...",
+            "selected": false
+          }
+        ],
+        "generatedContent": {
+          "quiz": [
+            {
+              "question": "What is AI?",
+              "type": "MCQ",
+              "answerA": "Artificial Intelligence",
+              "answerB": "Automated Intelligence",
+              "answerC": "Advanced Intelligence",
+              "answerD": "Algorithmic Intelligence",
+              "correctAnswer": "A",
+              "explanation": "AI stands for Artificial Intelligence..."
+            }
+          ],
+          "lastGenerated": "quiz"
+        },
+        "chatHistory": [
+          {
+            "role": "assistant",
+            "content": "Quiz generated successfully!"
+          }
+        ]
+      }
+    ]
+  },
+  "version": 0
+}
+
+================================================================================
+4. FILE STRUCTURE
+================================================================================
+
+HarvardHacks2025/
+├── src/
+│   ├── app/
+│   │   ├── api/                          # API Routes
+│   │   │   ├── process-pdf/
+│   │   │   │   └── route.ts              # PDF text extraction endpoint
+│   │   │   ├── generate-quiz/
+│   │   │   │   └── route.ts              # Quiz generation endpoint
+│   │   │   └── route.ts                  # Legacy quiz route
+│   │   │
+│   │   ├── class/[id]/
+│   │   │   └── page.tsx                  # Class detail page (main workspace)
+│   │   │
+│   │   ├── instructor/[id]/
+│   │   │   └── page.tsx                  # Instructor dashboard
+│   │   │
+│   │   ├── components/
+│   │   │   ├── quiz-display/
+│   │   │   │   └── QuizDisplay.tsx       # Interactive quiz React component
+│   │   │   ├── pdf-quiz/
+│   │   │   │   └── pdf-quiz.tsx          # Legacy PDF quiz component
+│   │   │   ├── pdf-summary/
+│   │   │   │   └── pdf-summary.tsx       # PDF summary component
+│   │   │   ├── pdf-flashcards/
+│   │   │   │   └── pdf-flashcards.tsx    # Flashcards component
+│   │   │   ├── index.js                  # CLI entry point (legacy)
+│   │   │   ├── pdf-processor.js          # PDF text extraction logic
+│   │   │   ├── content-analyzer.js       # Content analysis for learning elements
+│   │   │   ├── simple-quiz-generator.ts  # Gemini-based quiz generation
+│   │   │   ├── quiz-to-html.js           # Converts quiz JSON to HTML
+│   │   │   ├── poll-generator.js         # Poll generation
+│   │   │   ├── lesson-plan-generator.js  # Lesson plan generation
+│   │   │   └── lesson-plan-visualizer.js # Lesson plan visualization
+│   │   │
+│   │   ├── lib/
+│   │   │   └── store.ts                  # Zustand state management
+│   │   │
+│   │   ├── page.tsx                      # Homepage (class list)
+│   │   ├── layout.tsx                    # Root layout
+│   │   └── globals.css                   # Global styles
+│   │
+│   └── key.api                           # Gemini API key (gitignored)
+│
+├── content/                              # Sample PDF content for testing
+│   ├── HH-Test-Content.pdf
+│   ├── L16slides.pdf
+│   ├── ocaml_lecture_slides.pdf
+│   └── test-content.pdf
+│
+├── quiz-output/                          # Generated HTML quizzes (legacy)
+│   └── [various .html quiz files]
+│
+├── public/                               # Static assets
+├── package.json                          # Dependencies
+├── tsconfig.json                         # TypeScript config
+├── tailwind.config.js                    # Tailwind config
+└── README.md                             # Project readme
+
+================================================================================
+5. CORE FEATURES
+================================================================================
+
+IMPLEMENTED:
+✅ PDF Upload & Text Extraction
+   - Drag-and-drop file upload
+   - Base64 conversion (client-side)
+   - Server-side text extraction via pdf-parse
+   - Extracted text stored in localStorage
+
+✅ Interactive Quiz Generation
+   - Content analysis to identify learning elements
+   - Gemini AI-powered question generation
+   - Support for MCQ and True/False questions
+   - React component with scoring and explanations
+
+✅ Class/Lesson Management
+   - Create multiple classes
+   - Rename/delete classes
+   - File selection for processing
+   - Chat interface with AI
+
+✅ State Persistence
+   - Zustand store with localStorage middleware
+   - Survives page refreshes
+   - Per-class generated content storage
+
+PARTIALLY IMPLEMENTED:
+⚠️ Summary Generation (UI ready, needs API integration)
+⚠️ Key Points Extraction (UI ready, needs API integration)
+⚠️ Slide Generation (UI ready, needs API integration)
+⚠️ Flashcards (component exists, needs integration)
+
+PLANNED:
+🔲 QR Code Generation for student access
+🔲 Instructor Dashboard with real-time student responses
+🔲 Export functionality (PDF, PowerPoint, etc.)
+🔲 Multi-language support
+
+================================================================================
+6. API ENDPOINTS
+================================================================================
+
+POST /api/process-pdf
+-------------------
+Purpose: Extract text from base64-encoded PDF
+Location: src/app/api/process-pdf/route.ts
+
+Request Body:
+{
+  "pdfBase64": "JVBERi0xLjQKJeLjz9MK...",  // Base64 PDF data
+  "fileName": "lecture.pdf"                  // Optional filename
+}
+
+Response (Success):
+{
+  "success": true,
+  "extractedText": "Full text content...",
+  "metadata": {
+    "fileName": "lecture.pdf",
+    "textLength": 5432
+  }
+}
+
+Response (Error):
+{
+  "error": "Failed to process PDF",
+  "details": "Error message here"
+}
+
+-------------------
+
+POST /api/generate-quiz
+----------------------
+Purpose: Generate quiz from extracted text
+Location: src/app/api/generate-quiz/route.ts
+
+Request Body:
+{
+  "extractedText": "Artificial Intelligence is...",
+  "numQuestions": 5                          // Optional, default 5
+}
+
+Response (Success):
+{
+  "success": true,
+  "quiz": {
+    "questions": [
+      {
+        "question": "What is AI?",
+        "type": "MCQ",
+        "answerA": "Artificial Intelligence",
+        "answerB": "...",
+        "answerC": "...",
+        "answerD": "...",
+        "correctAnswer": "A",
+        "explanation": "..."
+      }
+    ]
+  },
+  "analysis": {
+    "totalLength": 5432,
+    "hasActivities": true,
+    "hasPracticeQuestions": false,
+    "contentTypes": ["In-class activities", "Key concepts"],
+    "suggestions": ["Prioritize questions based on in-class activities"]
+  },
+  "metadata": {
+    "pdfTextLength": 5432,
+    "numQuestionsRequested": 5,
+    "actualQuestionsGenerated": 5,
+    "contentSource": "provided"
+  }
+}
+
+================================================================================
+7. COMPONENT DETAILS
+================================================================================
+
+HomePage (src/app/page.tsx)
+---------------------------
+Main Components:
+- Navbar: App branding
+- ClassCard: Displays individual class with rename/delete menu
+- CreateClassModal: File upload modal with PDF processing
+
+Key Functions:
+- handleCreateClass() [line 110-185]:
+  * Reads files with FileReader
+  * Converts PDFs to base64
+  * Calls /api/process-pdf
+  * Stores extracted text in Zustand
+  * Navigates to class page
+
+File Upload Process:
+1. User drops/selects files
+2. For each PDF:
+   a. Check size (warn if > 2MB)
+   b. Convert to base64 via FileReader
+   c. POST to /api/process-pdf
+   d. Store extractedText in file object
+3. Create class with processed files
+4. Navigate to /class/[id]
+
+-------------------
+
+ClassPage (src/app/class/[id]/page.tsx)
+---------------------------------------
+Layout: 3-column design
+- Left: File list with checkboxes
+- Middle: Content preview & chat
+- Right: Action buttons & tools
+
+Key Functions:
+- handleQuizGeneration() [line 76-129]:
+  * Gets selected files with extractedText
+  * Combines text from multiple PDFs
+  * POSTs to /api/generate-quiz
+  * Updates store with quiz data
+  * Displays in QuizDisplay component
+
+- handleActionButton() [line 46-74]:
+  * Switch statement for different actions
+  * Routes to appropriate handler
+
+Action Flow:
+User clicks "Create Quiz" → handleActionButton('quiz') →
+handleQuizGeneration() → /api/generate-quiz →
+updateClassGeneratedContent() → QuizDisplay renders
+
+-------------------
+
+QuizDisplay (src/app/components/quiz-display/QuizDisplay.tsx)
+------------------------------------------------------------
+Interactive quiz component with:
+- Question rendering (MCQ & True/False)
+- Answer selection
+- Submit button (disabled until all answered)
+- Score calculation
+- Correct/incorrect highlighting
+- Explanation display
+- Close button to return to preview
+
+Features:
+- Gradient header with question count
+- Hover effects on options
+- Real-time answer tracking
+- Percentage score with emoji feedback
+- Responsive design
+
+-------------------
+
+Store (src/app/lib/store.ts)
+---------------------------
+Zustand store with localStorage persistence
+
+Key: 'class-storage'
+
+Interfaces:
+- FileData: { name, size, type, extractedText?, selected? }
+- QuizQuestion: MCQ or TF question structure
+- GeneratedContent: { quiz?, summary?, keyPoints?, slides?, lastGenerated? }
+- Class: { id, name, files[], generatedContent?, chatHistory? }
+
+Actions:
+- addClass()
+- deleteClass()
+- addFileToClass()
+- removeFileFromClass()
+- toggleFileSelection()
+- updateClassGeneratedContent()
+- addChatMessage()
+- updateQuizQuestion()
+- deleteQuizQuestion()
+
+Persistence:
+- Auto-saves to localStorage on every state change
+- Hydrates from localStorage on app load
+- Uses createJSONStorage(() => localStorage)
+
+================================================================================
+8. PDF PROCESSING PIPELINE
+================================================================================
+
+Component: src/app/components/pdf-processor.js
+
+Functions:
+
+1. extractTextFromPDF(pdfPath) [LEGACY - file-based]
+   - Reads PDF from filesystem
+   - Used by CLI tools (index.js)
+
+2. extractTextFromPDFData(pdfData) [NEW - base64/buffer]
+   - Accepts base64 string or Buffer
+   - Converts base64 to Buffer if needed
+   - Uses pdf-parse to extract text
+   - Cleans text (normalize line endings, whitespace)
+   - Returns extracted text string
+
+3. extractTextFromFile(filePath)
+   - Reads text files (.txt, .md)
+
+4. processContent(content)
+   - Processes direct text content
+   - Basic cleanup and validation
+
+5. getContentFromSource(source)
+   - Universal handler for different input types
+   - Routes to appropriate extraction function
+
+Text Cleaning Pipeline:
+1. Extract raw text from PDF
+2. Normalize line endings (\r\n → \n)
+3. Reduce multiple newlines (\n{3,} → \n\n)
+4. Normalize whitespace (multiple spaces → single space)
+5. Trim leading/trailing whitespace
+
+================================================================================
+9. QUIZ GENERATION FLOW
+================================================================================
+
+Step-by-Step Process:
+
+1. CONTENT ANALYSIS (content-analyzer.js)
+   Function: analyzeText(content)
+   - Searches for activity keywords (exercise, practice, problem, etc.)
+   - Searches for question keywords (question, solve, calculate, etc.)
+   - Searches for example keywords (example, case study, etc.)
+   - Searches for concept keywords (definition, theorem, principle, etc.)
+   - Returns analysis object with suggestions
+
+2. QUIZ GENERATION (simple-quiz-generator.ts)
+   Function: generateQuiz(numQuestions, pdfContent)
+   - Reads Gemini API key from src/key.api
+   - Creates structured schemas for MCQ and TF questions
+   - Sends prompt to Gemini API with content
+   - Gemini generates JSON-structured quiz
+   - Returns quiz object with questions array
+
+   Question Types:
+
+   MCQ (Multiple Choice):
+   {
+     question: string,
+     type: "MCQ",
+     answerA: string,
+     answerB: string,
+     answerC: string,
+     answerD: string,
+     correctAnswer: "A"|"B"|"C"|"D",
+     explanation: string
+   }
+
+   TF (True/False):
+   {
+     question: string,
+     type: "TF",
+     correctAnswer: "true"|"false",
+     explanation: string
+   }
+
+3. DISPLAY (QuizDisplay.tsx)
+   - Receives questions array
+   - Renders interactive UI
+   - Handles user input
+   - Calculates score
+   - Shows explanations
+
+Prompt Engineering:
+- Instructs Gemini to focus on in-class activities first
+- Prioritizes practice questions
+- Emphasizes key concepts
+- Generates even mix of MCQ and TF
+- Requires exactly N questions
+- Ensures all answers are meaningful and different
+
+================================================================================
+10. LOCALSTORAGE SCHEMA
+================================================================================
+
+KEY: 'class-storage'
+LOCATION: Browser localStorage (not IndexedDB, not sessionStorage)
+ACCESS: window.localStorage.getItem('class-storage')
+
+EXACT LOCATION OF EXTRACTED TEXT:
+localStorage['class-storage'] → state → classes → [class object] → files → [file object] → extractedText
+
+Example Path:
+localStorage['class-storage']
+  .state
+  .classes[0]              // First class
+  .files[1]                // Second file in that class
+  .extractedText           // The extracted text string
+
+To inspect in DevTools:
+1. Open Chrome/Firefox DevTools (F12)
+2. Go to "Application" tab (Chrome) or "Storage" tab (Firefox)
+3. Expand "Local Storage"
+4. Click on your domain (http://localhost:3000)
+5. Find key: 'class-storage'
+6. Value is JSON - click to expand
+7. Navigate: state → classes → [index] → files → [index] → extractedText
+
+To access programmatically:
+```javascript
+// In browser console:
+const storage = JSON.parse(localStorage.getItem('class-storage'));
+const firstClass = storage.state.classes[0];
+const firstFile = firstClass.files[0];
+console.log(firstFile.extractedText);
+```
+
+SIZE LIMITS:
+- localStorage max: ~5-10MB (browser-dependent)
+- Text storage is efficient (1 char ≈ 2 bytes in JSON)
+- A 2MB PDF might extract to ~100KB of text
+- Can store ~50-100 processed PDFs before hitting limit
+- Warning shown for PDFs > 2MB during upload
+
+PERSISTENCE:
+- Survives page refresh ✅
+- Survives browser restart ✅
+- Persists across sessions ✅
+- Cleared on browser cache clear ❌
+- Cleared on incognito mode close ❌
+- Per-origin isolation (domain-specific) ✅
+
+BACKUP/EXPORT:
+Currently no built-in export. To manually backup:
+```javascript
+// Export
+const data = localStorage.getItem('class-storage');
+const blob = new Blob([data], {type: 'application/json'});
+const url = URL.createObjectURL(blob);
+// Download via anchor tag
+
+// Import
+// Read file as text, then:
+localStorage.setItem('class-storage', fileContent);
+window.location.reload();
+```
+
+================================================================================
+11. FUTURE IMPLEMENTATIONS
+================================================================================
+
+IMMEDIATE NEXT STEPS:
+
+1. Summary Generation API Integration
+   - Create /api/generate-summary endpoint
+   - Use Gemini to summarize extracted text
+   - Display in preview area
+
+2. Key Points Extraction
+   - Create /api/generate-keypoints endpoint
+   - Bullet-point format generation
+   - Highlight important concepts
+
+3. Slide Generation
+   - Create /api/generate-slides endpoint
+   - PowerPoint-style slide structure
+   - Export to PPTX (requires library)
+
+4. Flashcards Integration
+   - Use existing pdf-flashcards component
+   - Connect to quiz generation pipeline
+   - Front/back card generation
+
+PLANNED FEATURES:
+
+1. Instructor Dashboard Enhancements
+   - Real-time student quiz results
+   - Analytics and insights
+   - Export reports
+
+2. QR Code Generation
+   - Generate QR for student access
+   - Link to quiz/content
+   - Track scans
+
+3. Multi-PDF Quiz Generation
+   - Already supported in code
+   - Combines text from multiple selected PDFs
+   - Needs testing
+
+4. Export Functionality
+   - Export quiz as PDF
+   - Export as PowerPoint
+   - Export as Google Forms
+   - Print-friendly format
+
+5. Advanced Content Analysis
+   - Difficulty level detection
+   - Topic clustering
+   - Prerequisite identification
+   - Learning objective extraction
+
+6. Student Features
+   - Student login/registration
+   - Quiz-taking interface
+   - Progress tracking
+   - Spaced repetition
+
+TECHNICAL DEBT:
+
+1. Error Handling
+   - Add retry logic for API calls
+   - Better error messages
+   - Fallback for API failures
+
+2. Loading States
+   - Skeleton loaders
+   - Progress indicators
+   - Streaming responses
+
+3. Testing
+   - Unit tests for components
+   - Integration tests for API
+   - E2E tests for critical flows
+
+4. Performance
+   - Lazy loading for large files
+   - Virtual scrolling for quiz lists
+   - Debounce for real-time features
+
+5. Security
+   - API key encryption
+   - Rate limiting
+   - Input sanitization
+   - CORS configuration
+
+================================================================================
+KEY FILES REFERENCE
+================================================================================
+
+CRITICAL FILES (MUST UNDERSTAND):
+
+1. src/app/page.tsx [lines 97-220]
+   - File upload and PDF processing entry point
+   - CreateClassModal component
+
+2. src/app/class/[id]/page.tsx [lines 46-129]
+   - Main workspace UI
+   - Quiz generation logic
+   - Action routing
+
+3. src/app/lib/store.ts
+   - State management
+   - localStorage persistence
+   - Data structure definitions
+
+4. src/app/components/pdf-processor.js [lines 44-84]
+   - extractTextFromPDFData() function
+   - PDF text extraction logic
+
+5. src/app/components/simple-quiz-generator.ts
+   - Gemini API integration
+   - Quiz generation prompts
+   - Structured output schemas
+
+6. src/app/components/quiz-display/QuizDisplay.tsx
+   - Interactive quiz UI
+   - Scoring logic
+   - User interaction handling
+
+7. src/app/api/process-pdf/route.ts
+   - PDF processing endpoint
+   - Base64 to text conversion
+
+8. src/app/api/generate-quiz/route.ts
+   - Quiz generation endpoint
+   - Content analysis integration
+
+CONFIGURATION FILES:
+
+- package.json: Dependencies and scripts
+- tsconfig.json: TypeScript configuration
+- tailwind.config.js: Styling configuration
+- next.config.js: Next.js configuration (if exists)
+
+API KEY LOCATION:
+- src/key.api (gitignored, not in repo)
+- Format: Single line with Gemini API key
+- Obtained from: https://aistudio.google.com/apikey
+
+================================================================================
+DEVELOPMENT COMMANDS
+================================================================================
+
+npm install              # Install dependencies
+npm run dev             # Start development server (localhost:3000)
+npm run build           # Build for production
+npm run start           # Start production server
+npm run lint            # Run ESLint
+
+DEBUGGING:
+
+1. Check localStorage:
+   - DevTools → Application → Local Storage → class-storage
+
+2. Check API calls:
+   - DevTools → Network tab → Filter by "Fetch/XHR"
+
+3. Check console:
+   - Server logs: Terminal running `npm run dev`
+   - Client logs: Browser DevTools → Console
+
+4. Test PDF extraction:
+   ```javascript
+   // In server code or API route:
+   const { extractTextFromPDFData } = require('./path/to/pdf-processor');
+   const text = await extractTextFromPDFData(base64String);
+   console.log(text);
+   ```
+
+================================================================================
+COMMON ISSUES & SOLUTIONS
+================================================================================
+
+ISSUE: PDF not processing
+SOLUTION:
+- Check if pdf-parse is installed: npm list pdf-parse
+- Verify API key in src/key.api
+- Check browser console for errors
+- Verify base64 encoding is correct
+
+ISSUE: Quiz not generating
+SOLUTION:
+- Check Gemini API key validity
+- Verify extracted text exists in localStorage
+- Check network tab for API errors
+- Ensure file is selected before clicking "Create Quiz"
+
+ISSUE: localStorage full
+SOLUTION:
+- Clear old classes from localStorage
+- Reduce PDF file sizes
+- Implement pagination or archival system
+
+ISSUE: Build errors
+SOLUTION:
+- Run: npm install
+- Clear .next folder: rm -rf .next
+- Rebuild: npm run build
+
+================================================================================
+END OF DOCUMENTATION
+================================================================================
+
+This documentation is maintained as the project evolves. Last comprehensive
+update reflects the new PDF processing and quiz generation architecture
+implemented on 2025-10-04.
+
+For questions or contributions, refer to the GitHub repository or contact
+the development team.

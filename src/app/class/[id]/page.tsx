@@ -1,9 +1,9 @@
 "use client";
 
-import { useClassStore, renameClass, FileMeta, QuizQuestion, GeneratedContent } from '../../lib/store';
+import { useClassStore, renameClass, FileData, QuizQuestion, GeneratedContent } from '../../lib/store';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
-import PDFQuiz from '../../components/pdf-quiz/pdf-quiz';
+import QuizDisplay from '../../components/quiz-display/QuizDisplay';
 
 export default function ClassPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -49,30 +49,83 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       return;
     }
 
-    // Special handling for quiz generation using PDF pipeline
-    if (action === 'quiz') {
-      const selectedFiles = classData.files.filter(f => f.selected);
-      const pdfFiles = selectedFiles.filter(f => f.type === 'application/pdf');
+    const selectedFiles = classData.files.filter(f => f.selected);
 
-      if (pdfFiles.length > 0) {
-        // Has PDFs - direct them to use PDFQuiz component
-        alert('For PDF files, please use the "Generate Quiz from PDF" button in the Actions section');
+    // Handle different actions with switch statement
+    switch (action) {
+      case 'quiz':
+        await handleQuizGeneration(selectedFiles);
+        break;
+      case 'summary':
+      case 'keyPoints':
+      case 'flashcards':
+        setCurrentAction(action);
+        setShowDetailPrompt(true);
+        const prompts = {
+          'summary': 'Please enter any specific requirements for the summary such as length, focus areas, or particular aspects to emphasize.',
+          'keyPoints': 'Please enter any specific requirements for the key points such as number of points, focus areas, or particular aspects to highlight.',
+          'flashcards': 'Please enter any specific requirements for the flashcards such as number of cards, difficulty level, or particular topics to cover.'
+        };
+        setDetailPrompt(prompts[action as keyof typeof prompts] || '');
+        break;
+      default:
+        console.error('Unknown action:', action);
+    }
+  };
+
+  const handleQuizGeneration = async (selectedFiles: FileData[]) => {
+    setIsGenerating(true);
+    setCurrentAction('quiz');
+
+    try {
+      // Get extracted text from selected PDFs
+      const pdfFiles = selectedFiles.filter(f => f.type === 'application/pdf' && f.extractedText);
+
+      if (pdfFiles.length === 0) {
+        alert('No PDF files with extracted text found. Please upload and process PDF files first.');
         return;
       }
-      // No PDFs - fall through to normal quiz generation below
+
+      // Combine text from all selected PDFs
+      const combinedText = pdfFiles.map(f => f.extractedText).join('\n\n');
+
+      // Call quiz generation API
+      const response = await fetch('/api/generate-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          extractedText: combinedText,
+          numQuestions: 5
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate quiz');
+      }
+
+      const result = await response.json();
+
+      // Update store with generated quiz
+      updateClassGeneratedContent(resolvedParams.id, {
+        quiz: result.quiz.questions,
+        lastGenerated: 'quiz'
+      });
+
+      // Add success message to chat
+      addChatMessage(resolvedParams.id, {
+        role: 'assistant',
+        content: `✅ Quiz generated successfully! Found ${result.analysis.contentTypes.join(', ')}. You can now view and take the quiz below.`
+      });
+
+    } catch (error) {
+      console.error('Error generating quiz:', error);
+      addChatMessage(resolvedParams.id, {
+        role: 'assistant',
+        content: 'Sorry, there was an error generating the quiz. Please try again.'
+      });
+    } finally {
+      setIsGenerating(false);
     }
-
-    setCurrentAction(action);
-    setShowDetailPrompt(true);
-
-    // Set default prompts based on action
-    const prompts = {
-      'summary': 'Please enter any specific requirements for the summary such as length, focus areas, or particular aspects to emphasize.',
-      'keyPoints': 'Please enter any specific requirements for the key points such as number of points, focus areas, or particular aspects to highlight.',
-      'slides': 'Please enter any specific requirements for the slides such as number of slides, presentation style, or particular topics to cover.'
-    };
-
-    setDetailPrompt(prompts[action as keyof typeof prompts] || '');
   };
 
   const generateContent = async () => {
@@ -82,24 +135,39 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     setShowDetailPrompt(false);
 
     const selectedFiles = classData.files.filter(f => f.selected);
-    const content = selectedFiles.map(f => f.content || '').join('\n\n');
+    const extractedText = selectedFiles.map(f => f.extractedText || '').join('\n\n');
 
     try {
-      const response = await fetch('/api/gemini', {
+      // Determine which API endpoint to call based on action
+      const endpointMap: { [key: string]: string } = {
+        'summary': '/api/generate-summary',
+        'keyPoints': '/api/generate-keypoints',
+        'flashcards': '/api/generate-flashcards'
+      };
+
+      const endpoint = endpointMap[currentAction];
+      if (!endpoint) {
+        throw new Error(`Unknown action: ${currentAction}`);
+      }
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: currentAction,
-          content,
+          extractedText,
           details: detailPrompt
         })
       });
 
       const result = await response.json();
 
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to generate content');
+      }
+
       // Update store with generated content
       const generatedContent: GeneratedContent = {
-        [currentAction]: result[currentAction] || result.quiz || result.summary || result.keyPoints || result.slides,
+        [currentAction]: result[currentAction] || result.summary || result.keyPoints || result.flashcards,
         lastGenerated: currentAction
       };
 
@@ -170,14 +238,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     window.open(`/instructor/${resolvedParams.id}`, '_blank');
   };
 
-  // Handle PDF quiz generation
-  const handlePDFQuizGenerated = (quizPath: string, analysis: any) => {
-    // Add a chat message about the successful generation
-    addChatMessage(resolvedParams.id, {
-      role: 'assistant',
-      content: `✅ PDF Quiz generated successfully! Content analysis found: ${analysis.contentTypes.join(', ')}. The quiz has been opened in a new tab.`
-    });
-  };
 
   // This prevents hydration errors by waiting for the component to mount on the client
   const [hasMounted, setHasMounted] = useState(false);
@@ -248,93 +308,32 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
           <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 className="text-lg font-semibold mb-4">Preview & Chat</h2>
 
-            {/* Mobile Emulator Preview */}
-            <div className="flex-1 mb-4">
-              {classData.generatedContent && (
-                <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-4 max-w-sm mx-auto">
-                  <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg overflow-hidden" style={{ width: '320px', height: '500px' }}>
-                    {/* Mobile Header */}
-                    <div className="bg-blue-600 text-white p-3 text-center">
-                      <h3 className="font-semibold">{classData.name}</h3>
-                    </div>
-
-                    {/* Mobile Content */}
-                    <div className="p-4 h-full overflow-y-auto">
-                      {classData.generatedContent.quiz && (
-                        <div className="space-y-4">
-                          {classData.generatedContent.quiz.map((question, index) => (
-                            <div key={index} className="border-b pb-4">
-                              <div className="flex justify-between items-start mb-2">
-                                <h4 className="font-medium text-sm">{question.question}</h4>
-                                <div className="flex gap-1">
-                                  <button
-                                    onClick={() => setEditingQuestion(index)}
-                                    className="text-xs text-blue-600 hover:text-blue-800"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => deleteQuizQuestion(resolvedParams.id, index)}
-                                    className="text-xs text-red-600 hover:text-red-800"
-                                  >
-                                    Delete
-                                  </button>
-                                </div>
-                              </div>
-
-                              {question.type === 'MCQ' ? (
-                                <div className="space-y-1 text-xs">
-                                  <div className="flex items-center">
-                                    <span className="w-4">A)</span>
-                                    <span className="ml-2">{question.answerA}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="w-4">B)</span>
-                                    <span className="ml-2">{question.answerB}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="w-4">C)</span>
-                                    <span className="ml-2">{question.answerC}</span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <span className="w-4">D)</span>
-                                    <span className="ml-2">{question.answerD}</span>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-xs">
-                                  <div className="flex gap-4">
-                                    <label className="flex items-center">
-                                      <input type="radio" name={`q${index}`} className="mr-1" />
-                                      True
-                                    </label>
-                                    <label className="flex items-center">
-                                      <input type="radio" name={`q${index}`} className="mr-1" />
-                                      False
-                                    </label>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {classData.generatedContent.summary && (
-                        <div className="text-sm">
-                          <h4 className="font-semibold mb-2">Summary</h4>
-                          <p className="text-gray-700 dark:text-gray-300">{classData.generatedContent.summary}</p>
-                        </div>
-                      )}
-
-                      {classData.generatedContent.keyPoints && (
-                        <div className="text-sm">
-                          <h4 className="font-semibold mb-2">Key Points</h4>
-                          <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{classData.generatedContent.keyPoints}</div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+            {/* Content Preview */}
+            <div className="flex-1 mb-4 overflow-y-auto">
+              {classData.generatedContent?.quiz && classData.generatedContent.quiz.length > 0 ? (
+                <QuizDisplay
+                  questions={classData.generatedContent.quiz}
+                  onClose={() => {
+                    // Clear quiz from generated content
+                    updateClassGeneratedContent(resolvedParams.id, {
+                      quiz: undefined,
+                      lastGenerated: undefined
+                    });
+                  }}
+                />
+              ) : classData.generatedContent?.summary ? (
+                <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700">
+                  <h4 className="font-semibold text-xl mb-4">Summary</h4>
+                  <p className="text-gray-700 dark:text-gray-300">{classData.generatedContent.summary}</p>
+                </div>
+              ) : classData.generatedContent?.keyPoints ? (
+                <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700">
+                  <h4 className="font-semibold text-xl mb-4">Key Points</h4>
+                  <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{classData.generatedContent.keyPoints}</div>
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-zinc-400">
+                  <p>Select files and generate content to preview here</p>
                 </div>
               )}
             </div>
@@ -402,16 +401,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             <div className="flex-1 mb-6">
               <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
-              {/* PDF Quiz Generation */}
-                {classData?.files.some(f => f.type === 'application/pdf') && (
-                    <div className="mb-6">
-                        <PDFQuiz
-                            files={classData.files.filter(f => f.type === 'application/pdf')}
-                            onQuizGenerated={handlePDFQuizGenerated}
-                        />
-                    </div>
-                )}
-
               <div className="grid grid-cols-2 gap-3">
                 <button
                   onClick={() => handleActionButton('summary')}
@@ -432,10 +421,10 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   Extract Key Points
                 </button>
                 <button
-                  onClick={() => handleActionButton('slides')}
+                  onClick={() => handleActionButton('flashcards')}
                   className="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
-                  Generate Slides
+                  Generate Flashcards
                 </button>
               </div>
             </div>

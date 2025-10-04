@@ -2,12 +2,39 @@ import { getContentFromSource } from './pdf-processor.js';
 
 /**
  * Analyzes content to identify in-class activities, practice questions, and key learning elements
+ * @param {string} contentSource - Either a file path or direct text content
  */
 export async function analyzeContent(contentSource) {
   try {
     console.log('🔍 Analyzing content for learning activities...');
 
     const content = await getContentFromSource(contentSource);
+
+    return analyzeText(content);
+  } catch (error) {
+    console.error('❌ Error analyzing content:', error);
+    return {
+      totalLength: 0,
+      hasActivities: false,
+      hasPracticeQuestions: false,
+      hasExamples: false,
+      hasKeyConcepts: false,
+      contentTypes: [],
+      suggestions: ['❌ Error analyzing content'],
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Analyzes text directly to identify learning elements
+ * @param {string} content - The text content to analyze
+ */
+export function analyzeText(content) {
+  try {
+    if (!content || typeof content !== 'string') {
+      throw new Error('Invalid content provided');
+    }
 
     const analysis = {
       totalLength: content.length,
@@ -103,7 +130,7 @@ export async function analyzeContent(contentSource) {
     return analysis;
 
   } catch (error) {
-    console.error('❌ Error analyzing content:', error);
+    console.error('❌ Error in analyzeText:', error);
     return {
       totalLength: 0,
       hasActivities: false,
@@ -111,7 +138,7 @@ export async function analyzeContent(contentSource) {
       hasExamples: false,
       hasKeyConcepts: false,
       contentTypes: [],
-      suggestions: ['❌ Error analyzing content'],
+      suggestions: ['❌ Error analyzing text'],
       error: error.message
     };
   }

@@ -2,6 +2,7 @@ import fs from 'fs';
 
 /**
  * Extract text content from PDF files using pdf-parse library
+ * @param {string} pdfPath - Path to PDF file
  */
 export async function extractTextFromPDF(pdfPath) {
   try {
@@ -37,6 +38,48 @@ export async function extractTextFromPDF(pdfPath) {
   } catch (error) {
     console.error('❌ Error reading PDF file:', error.message);
     throw new Error(`Failed to read PDF file: ${error.message}`);
+  }
+}
+
+/**
+ * Extract text content from PDF base64 string or buffer
+ * @param {string|Buffer} pdfData - Base64 string or Buffer containing PDF data
+ */
+export async function extractTextFromPDFData(pdfData) {
+  try {
+    console.log('📄 Extracting text from PDF data using pdf-parse...');
+
+    // Dynamic import for pdf-parse
+    const pdfModule = await import('pdf-parse');
+    const pdf = pdfModule.pdf || pdfModule.PDFParse;
+
+    // Convert base64 to buffer if needed
+    let dataBuffer;
+    if (typeof pdfData === 'string') {
+      dataBuffer = Buffer.from(pdfData, 'base64');
+    } else {
+      dataBuffer = pdfData;
+    }
+
+    // Parse the PDF and extract text
+    const data = await pdf(dataBuffer, {
+      max: 0, // No page limit
+    });
+
+    // Clean up the extracted text
+    const cleanedContent = data.text
+      .replace(/\r\n/g, '\n') // Normalize line endings
+      .replace(/\n{3,}/g, '\n\n') // Reduce multiple newlines
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .trim();
+
+    console.log(`✅ PDF processed: ${cleanedContent.length} characters extracted`);
+    console.log(`📊 PDF info: ${data.numpages} pages, ${data.info?.Title || 'No title'}`);
+
+    return cleanedContent;
+  } catch (error) {
+    console.error('❌ Error reading PDF data:', error.message);
+    throw new Error(`Failed to read PDF data: ${error.message}`);
   }
 }
 

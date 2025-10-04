@@ -4,7 +4,7 @@ import { useCallback, useState, useEffect, MouseEvent as ReactMouseEvent, useRef
 import { useDropzone, FileWithPath } from 'react-dropzone';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useClassStore, Class, FileMeta, renameClass } from './lib/store';
+import { useClassStore, Class, FileData, renameClass } from './lib/store';
 
 // === Component Definitions ===
 
@@ -94,9 +94,11 @@ const ClassCard = ({ cls, onDelete }: { cls: Class; onDelete: (id: string) => vo
 };
 
 
-// CreateClassModal Component (no changes needed from your version)
+// CreateClassModal Component
 const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass: (newClass: Class) => void; }) => {
   const [files, setFiles] = useState<File[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState('');
   const router = useRouter();
 
   const onDrop = useCallback((acceptedFiles: FileWithPath[]) => {
@@ -105,19 +107,81 @@ const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop });
 
-  const handleCreateClass = () => {
+  const handleCreateClass = async () => {
+    if (files.length === 0) return;
+
+    setIsProcessing(true);
     const newClassId = String(Date.now());
-    const fileMetas: FileMeta[] = files.map(f => ({
-      name: f.name,
-      size: f.size,
-      type: f.type,
-    }));
-    addClass({
-      id: newClassId,
-      name: 'Untitled Lesson',
-      files: fileMetas,
-    });
-    router.push(`/class/${newClassId}`);
+
+    try {
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          // Check file size (warn if > 2MB)
+          if (file.size > 2 * 1024 * 1024) {
+            console.warn(`Large file detected: ${file.name} (${Math.round(file.size / 1024 / 1024)}MB)`);
+          }
+
+          // Only process PDFs
+          if (file.type === 'application/pdf') {
+            setProcessingStatus(`Processing ${file.name}...`);
+
+            // Convert to base64
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => {
+                const result = reader.result as string;
+                // Remove data URL prefix to get pure base64
+                const base64Data = result.split(',')[1];
+                resolve(base64Data);
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(file);
+            });
+
+            // Send to server for text extraction
+            const response = await fetch('/api/process-pdf', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pdfBase64: base64, fileName: file.name }),
+            });
+
+            if (!response.ok) {
+              throw new Error(`Failed to process ${file.name}`);
+            }
+
+            const { extractedText } = await response.json();
+
+            return {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              extractedText,
+              selected: false,
+            };
+          } else {
+            // Non-PDF files - store as-is without processing
+            return {
+              name: file.name,
+              size: file.size,
+              type: file.type,
+              selected: false,
+            };
+          }
+        })
+      );
+
+      addClass({
+        id: newClassId,
+        name: 'Untitled Lesson',
+        files: processedFiles,
+      });
+
+      router.push(`/class/${newClassId}`);
+    } catch (error) {
+      console.error('Error processing files:', error);
+      alert('Error processing files. Please try again.');
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -139,9 +203,16 @@ const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass
             </ul>
           </div>
         )}
+        {processingStatus && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+            <p className="text-sm text-blue-600 dark:text-blue-400">{processingStatus}</p>
+          </div>
+        )}
         <div className="flex justify-end gap-4 mt-6">
-          <button onClick={onClose} className="px-4 py-2 rounded font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800">Cancel</button>
-          <button onClick={handleCreateClass} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 disabled:bg-zinc-400" disabled={files.length === 0}>Create Class</button>
+          <button onClick={onClose} className="px-4 py-2 rounded font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800" disabled={isProcessing}>Cancel</button>
+          <button onClick={handleCreateClass} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 disabled:bg-zinc-400" disabled={files.length === 0 || isProcessing}>
+            {isProcessing ? 'Processing...' : 'Create Class'}
+          </button>
         </div>
       </div>
     </div>

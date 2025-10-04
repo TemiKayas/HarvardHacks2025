@@ -1,13 +1,15 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import fs from "fs";
+import path from "path";
 
 export async function generateQuiz(
     numQuestions: number = 5,
     pdfContent: string | null = null
 ) {
     try {
-        // Initialize Gemini
-        const apiKey = fs.readFileSync("../../../src/key.api", "utf8").trim();
+        // Initialize Gemini - use absolute path from project root
+        const apiKeyPath = path.join(process.cwd(), 'src', 'key.api');
+        const apiKey = fs.readFileSync(apiKeyPath, "utf8").trim();
         const ai = new GoogleGenAI({ apiKey });
 
         // Define distinct schemas for each question type
