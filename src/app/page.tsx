@@ -18,7 +18,7 @@ const Navbar = () => (
 );
 
 const ClassCard = ({ name }: ClassCardProps) => (
-  <div className="bg-white dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-lg p-6 cursor-pointer hover:shadow-xl hover:border-blue-500 transition-all duration-200">
+  <div className="bg-transparent bg-opacity-80 border border-zinc-200 rounded-lg p-6 cursor-pointer hover:shadow-xl hover:border-blue-500 transition-all duration-200">
     <h3 className="font-semibold text-lg text-zinc-900 dark:text-zinc-100">{name}</h3>
   </div>
 );
