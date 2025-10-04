@@ -114,7 +114,6 @@ const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass
     }));
     addClass({
       id: newClassId,
-      name: 'Untitled Class',
       files: fileMetas,
       name: 'Untitled Lesson',
     });
@@ -154,13 +153,8 @@ const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-<<<<<<< HEAD
-
-  //Get the actual classes and the addClass function from the store.
-=======
   
   // Get all necessary functions from the store
->>>>>>> 332809d5ba16b89b269f1ed8a75030a0b01265aa
   const classes = useClassStore((state) => state.classes);
   const addClass = useClassStore((state) => state.addClass);
   const deleteClass = useClassStore((state) => state.deleteClass);
