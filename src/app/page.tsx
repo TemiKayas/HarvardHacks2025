@@ -54,6 +54,7 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
     //Call the addClass function with the correctly shaped object.
     addClass({
       id: newClassId,
+      name: '',
       files: fileMetas,
     });
 
@@ -93,7 +94,7 @@ const CreateClassModal = ({ onClose, addClass }: CreateClassModalProps) => {
 
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-  
+
   //Get the actual classes and the addClass function from the store.
   const classes = useClassStore((state) => state.classes);
   const addClass = useClassStore((state) => state.addClass);
@@ -114,7 +115,7 @@ export default function HomePage() {
       <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold tracking-tight">Your Classes</h1>
-          <button 
+          <button
             onClick={() => setIsModalOpen(true)}
             className="bg-blue-600 text-white font-semibold rounded-lg shadow-md px-5 py-2.5 hover:bg-blue-700 transition-colors"
           >

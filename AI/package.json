@@ -9,9 +9,15 @@
     "test": "node index.js"
   },
   "dependencies": {
-    "@google/genai": "^1.22.0"
+    "@google/genai": "^1.22.0",
+    "pdf-parse": "^2.1.7"
   },
-  "keywords": ["gemini", "langgraph", "quiz", "ai"],
+  "keywords": [
+    "gemini",
+    "langgraph",
+    "quiz",
+    "ai"
+  ],
   "author": "",
   "license": "MIT"
 }
