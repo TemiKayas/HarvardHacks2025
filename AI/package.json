@@ -1,0 +1,17 @@
+{
+  "name": "gemini-quiz-generator",
+  "version": "1.0.0",
+  "description": "Direct Gemini API quiz generator",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "test": "node index.js"
+  },
+  "dependencies": {
+    "@google/genai": "^1.22.0"
+  },
+  "keywords": ["gemini", "langgraph", "quiz", "ai"],
+  "author": "",
+  "license": "MIT"
+}
