@@ -91,7 +91,7 @@ const CreateClassModal = ({ onClose }: CreateClassModalProps) => {
 
         <div className="flex justify-end gap-4 mt-6">
           <button onClick={onClose} className="px-4 py-2 rounded font-semibold hover:bg-zinc-100 dark:hover:bg-zinc-800">Cancel</button>
-          <button className="bg-blue-600 text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 disabled:bg-zinc-400" disabled={files.length === 0}>
+          <button onClick={handleCreateClass} className="bg-blue-600 text-white font-semibold px-4 py-2 rounded hover:bg-blue-700 disabled:bg-zinc-400" disabled={files.length === 0}>
             Create Class
           </button>
         </div>
