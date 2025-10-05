@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { extractTextFromPDFData } from '@/src/app/components/pdf-processor';
+import { extractTextFromPDFData } from '../../components/pdf-processor.js';
 
 export async function POST(request: NextRequest) {
   try {
