@@ -1,10 +1,10 @@
 import QRCode from 'qrcode';
 
 class QRGenerator {
-  static async generateQRCode(url: string, options: Record<string, unknown> = {}) {
+  static async generateQRCode(url: string, options: any = {}) {
     try {
       const defaultOptions = {
-        type: 'png',
+        type: 'image/png',
         quality: 0.92,
         margin: 1,
         color: {
@@ -34,10 +34,10 @@ class QRGenerator {
     }
   }
 
-  static async generateQRCodeBuffer(url: string, options: Record<string, unknown> = {}) {
+  static async generateQRCodeBuffer(url: string, options: any = {}) {
     try {
       const defaultOptions = {
-        type: 'png',
+        type: 'image/png',
         quality: 0.92,
         margin: 1,
         color: {

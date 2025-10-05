@@ -240,9 +240,15 @@ export const useClassStore = create<ClassStore>()(
         try {
           // Import QRGenerator dynamically to avoid SSR issues
           const QRGenerator = (await import('./qr-generator')).default;
-          const qrResult = await QRGenerator.generateQRCode(url);
+          const qrResult = await QRGenerator.generateQRCode(url) as {
+            success: boolean;
+            dataURL?: string;
+            url?: string;
+            error?: string;
+            timestamp: string;
+          };
 
-          if (qrResult.success) {
+          if (qrResult.success && qrResult.dataURL) {
             set((state) => ({
               classes: state.classes.map((cls) =>
                 cls.id === classId
@@ -251,7 +257,7 @@ export const useClassStore = create<ClassStore>()(
                       generatedContent: {
                         ...cls.generatedContent,
                         qrCode: {
-                          dataURL: qrResult.dataURL,
+                          dataURL: qrResult.dataURL!,
                           url: qrResult.url,
                           generatedAt: new Date(),
                           classId: classId

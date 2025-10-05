@@ -122,7 +122,7 @@ export default function AdminResultsPage({ params }: { params: Promise<{ id: str
                     <div className="mt-4">
                       <h5 className="font-medium mb-2">Question Breakdown:</h5>
                       <div className="grid gap-2">
-                        {currentClassData.generatedContent.quiz?.map((question, qIndex) => {
+                        {currentClassData.generatedContent?.quiz?.map((question, qIndex) => {
                           const studentAnswer = response.answers[qIndex];
                           const isCorrect = studentAnswer === question.correctAnswer;
 
@@ -174,7 +174,7 @@ export default function AdminResultsPage({ params }: { params: Promise<{ id: str
               </div>
               <div className="p-6">
                 <div className="grid gap-4">
-                    {currentClassData.generatedContent.quiz?.map((question, qIndex) => {
+                    {currentClassData.generatedContent?.quiz?.map((question, qIndex) => {
                     const correctCount = responses.filter(r => r.answers[qIndex] === question.correctAnswer).length;
                     const percentage = Math.round((correctCount / totalStudents) * 100);
 
