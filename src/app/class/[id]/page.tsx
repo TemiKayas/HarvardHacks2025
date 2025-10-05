@@ -24,8 +24,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
-  const [showDetailPrompt, setShowDetailPrompt] = useState(false);
-  const [detailPrompt, setDetailPrompt] = useState('');
   const [currentAction, setCurrentAction] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'quiz' | 'summary' | 'keyPoints' | 'flashcards' | null>(null);
@@ -89,13 +87,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       case 'keyPoints':
       case 'flashcards':
         setCurrentAction(action);
-        setShowDetailPrompt(true);
-        const prompts = {
-          'summary': 'Please enter any specific requirements for the summary such as length, focus areas, or particular aspects to emphasize.',
-          'keyPoints': 'Please enter any specific requirements for the key points such as number of points, focus areas, or particular aspects to highlight.',
-          'flashcards': 'Please enter any specific requirements for the flashcards such as number of cards, difficulty level, or particular topics to cover.'
-        };
-        setDetailPrompt(prompts[action as keyof typeof prompts] || '');
+        await generateContent(action, selectedFiles);
         break;
       default:
         console.error('Unknown action:', action);
@@ -161,16 +153,12 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     }
   };
 
-  const generateContent = async () => {
-    if (!classData?.files.some(f => f.selected)) return;
-
+  const generateContent = async (action: string, selectedFiles: FileData[]) => {
     setIsGenerating(true);
-    setShowDetailPrompt(false);
 
-    const selectedFiles = classData.files.filter(f => f.selected);
     const extractedText = selectedFiles.map(f => f.extractedText || '').join('\n\n');
 
-    addTerminalLog(`Starting ${currentAction} generation...`, 'info');
+    addTerminalLog(`Starting ${action} generation...`, 'info');
 
     try {
       // Determine which API endpoint to call based on action
@@ -180,20 +168,20 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
         'flashcards': '/api/generate-flashcards'
       };
 
-      const endpoint = endpointMap[currentAction];
+      const endpoint = endpointMap[action];
       if (!endpoint) {
-        throw new Error(`Unknown action: ${currentAction}`);
+        throw new Error(`Unknown action: ${action}`);
       }
 
       addTerminalLog(`Processing ${selectedFiles.length} file(s)...`, 'info');
-      addTerminalLog(`Sending request to ${currentAction} API...`, 'info');
+      addTerminalLog(`Sending request to ${action} API...`, 'info');
 
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           extractedText,
-          details: detailPrompt
+          details: '' // No additional details needed
         })
       });
 
@@ -203,24 +191,24 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
         throw new Error(result.error || 'Failed to generate content');
       }
 
-      addTerminalLog(`${currentAction} generated successfully`, 'success');
+      addTerminalLog(`${action} generated successfully`, 'success');
 
       // Update store with generated content
       const generatedContent: GeneratedContent = {
-        [currentAction]: result[currentAction] || result.summary || result.keyPoints || result.flashcards,
-        lastGenerated: currentAction
+        [action]: result[action] || result.summary || result.keyPoints || result.flashcards,
+        lastGenerated: action
       };
 
       updateClassGeneratedContent(resolvedParams.id, generatedContent);
 
       // Set active tab based on generated content
-      setActiveTab(currentAction as 'summary' | 'keyPoints' | 'flashcards');
+      setActiveTab(action as 'summary' | 'keyPoints' | 'flashcards');
 
-      addTerminalLog(`${currentAction} generation complete`, 'success');
+      addTerminalLog(`${action} generation complete`, 'success');
 
     } catch (error) {
       console.error('Error generating content:', error);
-      addTerminalLog(`${currentAction} generation failed: ` + (error instanceof Error ? error.message : 'Unknown error'), 'error');
+      addTerminalLog(`${action} generation failed: ` + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -435,28 +423,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                 </div>
               )}
             </div>
-
-            {/* Detail Prompt - Inline */}
-            {showDetailPrompt && (
-              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">{detailPrompt}</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={generateContent}
-                    disabled={isGenerating}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm"
-                  >
-                    {isGenerating ? 'Generating...' : 'Generate'}
-                  </button>
-                  <button
-                    onClick={() => setShowDetailPrompt(false)}
-                    className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Right Column - Actions & Terminal */}
