@@ -42,7 +42,7 @@ export default function FlashcardsDisplay({ flashcards, onClose }: FlashcardsDis
       <div className="bg-gradient-to-r from-green-500 to-emerald-500 text-white p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Flashcards</h1>
+            <h1 className="text-3xl font-bold mb-0">Flashcards</h1>
             <p className="text-green-100">
               Card {currentIndex + 1} of {flashcards.length}
             </p>

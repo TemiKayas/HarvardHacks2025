@@ -406,11 +406,11 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
           {/* Middle Column - Preview */}
           <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
-            <h2 className="text-lg font-semibold mb-4">Preview</h2>
+            <h2 className="text-lg font-semibold mb-1">Preview</h2>
 
             {/* Tab Navigation */}
             {(classData.generatedContent?.quiz || classData.generatedContent?.summary || classData.generatedContent?.keyPoints || classData.generatedContent?.flashcards) && (
-              <div className="flex gap-2 mb-4 border-b border-zinc-200 dark:border-zinc-700">
+              <div className="flex gap-2 mb-1 border-b border-zinc-200 dark:border-zinc-700">
                 {classData.generatedContent.quiz && (
                   <button
                     onClick={() => setActiveTab('quiz')}

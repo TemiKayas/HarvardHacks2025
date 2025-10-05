@@ -32,6 +32,7 @@ Content to analyze:
 ${extractedText}
 
 Format the key points as a bulleted list with clear, concise statements.
+DO NOT BOLD ANYTHING, DO NOT HIGHLIGHT ANYTHING, DO NOT ITALICIZE ANYTHING, AS SPECIAL FORMATTING WILL NOT WORK
 Focus on the most important concepts, definitions, and takeaways.
 
 REMINDER: Generate EXACTLY ${numKeyPoints} key points - count them before submitting.

@@ -62,7 +62,7 @@ export default function QuizDisplay({ questions, onClose }: QuizDisplayProps) {
       <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Interactive Quiz</h1>
+            <h1 className="text-3xl font-bold mb-0">Interactive Quiz</h1>
             <p className="text-blue-100">Test your knowledge with {questions.length} questions</p>
           </div>
           {onClose && (

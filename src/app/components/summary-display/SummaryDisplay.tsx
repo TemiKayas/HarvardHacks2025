@@ -12,7 +12,7 @@ export default function SummaryDisplay({ summary, onClose }: SummaryDisplayProps
       <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Summary</h1>
+            <h1 className="text-3xl font-bold mb-0">Summary</h1>
             <p className="text-purple-100">Key insights from your content</p>
           </div>
           {onClose && (

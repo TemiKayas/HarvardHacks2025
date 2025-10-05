@@ -75,7 +75,7 @@ export default function KeyPointsDisplay({ keyPoints, onClose }: KeyPointsDispla
       <div className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white p-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Key Points</h1>
+            <h1 className="text-3xl font-bold mb-0">Key Points</h1>
             <p className="text-blue-100">Essential takeaways from your content</p>
           </div>
           {onClose && (
