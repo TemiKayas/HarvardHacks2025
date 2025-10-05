@@ -40,7 +40,7 @@ Focus on the most important concepts, definitions, and takeaways.
 
     // Generate HTML and save to disk
     const htmlContent = keyPointsToHTML(keyPoints);
-    const outputDir = path.join(process.cwd(), 'keypoints-output');
+    const outputDir = path.join(process.cwd(), 'src', 'app', 'temp', 'keypoints-output');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -54,7 +54,7 @@ Focus on the most important concepts, definitions, and takeaways.
     return NextResponse.json({
       success: true,
       keyPoints: keyPoints,
-      htmlPath: `/keypoints-output/${filename}`
+      htmlPath: `/temp/keypoints-output/${filename}`
     });
 
   } catch (error) {

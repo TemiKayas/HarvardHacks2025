@@ -38,6 +38,8 @@ src/key.api
 keypoints-output/
 summary-output/
 quiz-output/
+flashcards-output/
+src/app/temp/
 
 # vercel
 .vercel

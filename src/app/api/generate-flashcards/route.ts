@@ -69,7 +69,7 @@ Each flashcard should have a clear question/term on the front and a concise answ
 
     // Generate HTML and save to disk
     const htmlContent = flashcardsToHTML(flashcards.flashcards);
-    const outputDir = path.join(process.cwd(), 'flashcards-output');
+    const outputDir = path.join(process.cwd(), 'src', 'app', 'temp', 'flashcards-output');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -83,7 +83,7 @@ Each flashcard should have a clear question/term on the front and a concise answ
     return NextResponse.json({
       success: true,
       flashcards: flashcards.flashcards,
-      htmlPath: `/flashcards-output/${filename}`
+      htmlPath: `/temp/flashcards-output/${filename}`
     });
 
   } catch (error) {

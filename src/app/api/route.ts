@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     const htmlQuiz = await generateHTMLQuiz(numQuestions, content);
 
     // Create quiz-output directory if it doesn't exist
-    const outputDir = path.join(process.cwd(), 'src', 'app', 'components', 'quiz-output');
+    const outputDir = path.join(process.cwd(), 'src', 'app', 'temp', 'quiz-output');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      quizPath: `/api/quiz/${filename}`,
+      quizPath: `/temp/quiz-output/${filename}`,
       analysis: analysis
     });
 

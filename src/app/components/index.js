@@ -32,7 +32,7 @@ async function main() {
       const htmlQuiz = await generateHTMLQuiz(numQuestions, contentSource);
 
       // Create quiz-output directory if it doesn't exist
-      const outputDir = './quiz-output';
+      const outputDir = './src/app/temp/quiz-output';
       if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true });
       }

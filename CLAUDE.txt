@@ -1,7 +1,7 @@
 ================================================================================
 STUDYSYNC - COMPREHENSIVE PROJECT DOCUMENTATION
 ================================================================================
-Last Updated: 2025-10-04 (Evening Update - Full Content Generation System)
+Last Updated: 2025-10-04 (Night Update - Terminal Logging System)
 Project: HarvardHacks2025 - AI-Powered Educational Content Generator
 
 ================================================================================
@@ -29,6 +29,7 @@ StudySync is a Next.js-based educational platform that allows instructors to:
 - Create AI-powered summaries
 - Extract key points with collapsible sections
 - Generate interactive flashcards
+- Monitor operations with real-time terminal logging
 - Manage multiple classes/lessons
 - Access instructor dashboards
 - Generate QR codes for student access
@@ -36,6 +37,8 @@ StudySync is a Next.js-based educational platform that allows instructors to:
 The application uses Google's Gemini AI API for content generation and
 pdf-parse library for PDF text extraction. All generated content is displayed
 in React components with tab navigation and saved as HTML files for record-keeping.
+A read-only terminal provides live feedback on all operations with timestamps
+and status indicators.
 
 ================================================================================
 2. ARCHITECTURE & TECH STACK
@@ -124,10 +127,20 @@ Format:
           }
         ]
       }
+    ],
+    "terminalLogs": [
+      {
+        "timestamp": "2025-10-04T20:30:45.123Z",
+        "message": "Starting quiz generation...",
+        "type": "info"
+      }
     ]
   },
   "version": 0
 }
+
+NOTE: terminalLogs is NOT persisted to localStorage - it resets on page refresh.
+This is intentional to avoid clutter and provide fresh logs each session.
 
 ================================================================================
 4. FILE STRUCTURE
@@ -152,6 +165,14 @@ HarvardHacks2025/
 │   │   ├── components/
 │   │   │   ├── quiz-display/
 │   │   │   │   └── QuizDisplay.tsx       # Interactive quiz React component
+│   │   │   ├── summary-display/
+│   │   │   │   └── SummaryDisplay.tsx    # Summary display component
+│   │   │   ├── keypoints-display/
+│   │   │   │   └── KeyPointsDisplay.tsx  # Key points display component
+│   │   │   ├── flashcards-display/
+│   │   │   │   └── FlashcardsDisplay.tsx # Flashcards display component
+│   │   │   ├── terminal/
+│   │   │   │   └── Terminal.tsx          # Read-only terminal logging component
 │   │   │   ├── pdf-quiz/
 │   │   │   │   └── pdf-quiz.tsx          # Legacy PDF quiz component
 │   │   │   ├── pdf-summary/
@@ -163,6 +184,9 @@ HarvardHacks2025/
 │   │   │   ├── content-analyzer.js       # Content analysis for learning elements
 │   │   │   ├── simple-quiz-generator.ts  # Gemini-based quiz generation
 │   │   │   ├── quiz-to-html.js           # Converts quiz JSON to HTML
+│   │   │   ├── summary-to-html.js        # Converts summary to HTML
+│   │   │   ├── keypoints-to-html.js      # Converts key points to HTML
+│   │   │   ├── flashcards-to-html.js     # Converts flashcards to HTML
 │   │   │   ├── poll-generator.js         # Poll generation
 │   │   │   ├── lesson-plan-generator.js  # Lesson plan generation
 │   │   │   └── lesson-plan-visualizer.js # Lesson plan visualization
@@ -237,7 +261,15 @@ FULLY IMPLEMENTED:
    - Create multiple classes
    - Rename/delete classes
    - File selection for processing
-   - Chat interface with AI
+
+✅ Terminal Logging System
+   - Read-only terminal with live operation feedback
+   - Timestamped logs (HH:MM:SS format)
+   - Type indicators: ✓ (success), ✗ (error), ⚠ (warning), › (info)
+   - Auto-scroll to latest messages
+   - Clear button for manual log cleanup
+   - Session-based (resets on page refresh)
+   - Logs all generation operations with detailed progress
 
 ✅ State Persistence
    - Zustand store with localStorage middleware
@@ -433,8 +465,8 @@ ClassPage (src/app/class/[id]/page.tsx)
 ---------------------------------------
 Layout: 3-column design
 - Left: File list with checkboxes
-- Middle: Content preview with TAB NAVIGATION & chat
-- Right: Action buttons & tools
+- Middle: Content preview with TAB NAVIGATION
+- Right: Action buttons, tools, & TERMINAL
 
 NEW: Tab Navigation System
 - Tabs appear when content is generated
@@ -443,21 +475,27 @@ NEW: Tab Navigation System
 - Auto-switches to new tab when content generated
 
 Key Functions:
-- handleQuizGeneration() [line 76-129]:
+- handleQuizGeneration() [line 82-137]:
+  * Logs "Starting quiz generation..." to terminal
   * Gets selected files with extractedText
   * Combines text from multiple PDFs
+  * Logs progress to terminal (file count, API request)
   * POSTs to /api/generate-quiz
+  * Logs success with question count or error message
   * Updates store with quiz data
   * Sets activeTab to 'quiz'
   * Displays in QuizDisplay component
 
-- handleActionButton() [line 46-74]:
+- handleActionButton() [line 50-80]:
   * Switch statement for different actions (quiz, summary, keyPoints, flashcards)
   * Routes to appropriate handler
 
-- generateContent() [line 131-200]:
+- generateContent() [line 151-203]:
+  * Logs "Starting [action] generation..." to terminal
   * Handles summary, keyPoints, flashcards generation
+  * Logs file processing and API requests
   * Calls respective API endpoints
+  * Logs success/error to terminal
   * Sets activeTab automatically
   * Updates store with generated content
 
@@ -551,6 +589,45 @@ Keyboard Controls:
 
 -------------------
 
+Terminal (src/app/components/terminal/Terminal.tsx)
+---------------------------------------------------
+Read-only terminal logging component for operation monitoring
+
+Features:
+- Dark terminal background (zinc-900) with white border
+- White text with monospace font
+- Timestamped entries (HH:MM:SS format)
+- Type-based symbols:
+  * ✓ = success (green operations)
+  * ✗ = error (failed operations)
+  * ⚠ = warning (potential issues)
+  * › = info (general progress updates)
+- Auto-scroll to bottom on new logs
+- Flexible height (min 200px, max 400px)
+- Scrollable content with styled scrollbar
+- Clear button underneath for manual cleanup
+
+Layout:
+- Positioned in right column under action buttons and tools
+- Takes remaining vertical space (flex-1)
+- Responsive to window size changes
+
+Terminal Logs:
+- Stored in Zustand store (NOT persisted to localStorage)
+- Resets on page refresh (session-based)
+- Example log flow for quiz generation:
+  1. [20:30:45] › Starting quiz generation...
+  2. [20:30:45] › Processing 1 PDF file(s)...
+  3. [20:30:45] › Sending request to quiz generation API...
+  4. [20:30:52] ✓ Generated 5 quiz questions
+  5. [20:30:52] ✓ Quiz generation complete
+
+Usage:
+- addTerminalLog(message, type?) - Adds new log entry
+- clearTerminalLogs() - Clears all logs via Clear button
+
+-------------------
+
 Store (src/app/lib/store.ts)
 ---------------------------
 Zustand store with localStorage persistence
@@ -563,6 +640,11 @@ Interfaces:
 - Flashcard: { front: string, back: string }
 - GeneratedContent: { quiz?, summary?, keyPoints?, flashcards?, lastGenerated? }
 - Class: { id, name, files[], generatedContent?, chatHistory? }
+- TerminalLog: { timestamp: Date, message: string, type?: 'info'|'success'|'error'|'warning' }
+
+State:
+- classes: Class[]
+- terminalLogs: TerminalLog[] (NOT persisted - session only)
 
 Actions:
 - addClass()
@@ -571,9 +653,11 @@ Actions:
 - removeFileFromClass()
 - toggleFileSelection()
 - updateClassGeneratedContent()
-- addChatMessage()
+- addChatMessage() (hidden from UI but kept in store)
 - updateQuizQuestion()
 - deleteQuizQuestion()
+- addTerminalLog(message, type?) - NEW: Adds timestamped log entry
+- clearTerminalLogs() - NEW: Clears all terminal logs
 
 Persistence:
 - Auto-saves to localStorage on every state change
@@ -983,12 +1067,46 @@ SOLUTION:
 - Rebuild: npm run build
 
 ================================================================================
+RECENT CHANGES (2025-10-04 Night Update)
+================================================================================
+
+TERMINAL LOGGING SYSTEM IMPLEMENTATION:
+- Replaced chat interface with read-only terminal component
+- Terminal positioned in right column under action buttons
+- Live operation monitoring with timestamped logs
+- Type-based indicators (success, error, warning, info)
+- Auto-scroll to latest messages
+- Session-based logs (reset on page refresh)
+- Clear button for manual cleanup
+
+REMOVED:
+- Chat interface UI (removed from middle column)
+- sendChatMessage() function
+- chatMessage state variable
+- addChatMessage() calls from generation handlers (replaced with terminal logs)
+- Chat interface is now HIDDEN from UI (but chatHistory still exists in store)
+
+ADDED:
+- Terminal.tsx component
+- TerminalLog interface in store
+- addTerminalLog() and clearTerminalLogs() store actions
+- Terminal logging in all generation handlers:
+  * Quiz generation: 5 log entries per operation
+  * Summary/KeyPoints/Flashcards: 4-5 log entries per operation
+  * Detailed progress tracking (file count, API requests, success/error)
+
+LAYOUT CHANGES:
+- Middle column: "Preview & Chat" → "Preview"
+- Right column: Now includes Terminal under Tools section
+- Terminal takes remaining vertical space with flex-1
+
+================================================================================
 END OF DOCUMENTATION
 ================================================================================
 
 This documentation is maintained as the project evolves. Last comprehensive
-update reflects the new PDF processing and quiz generation architecture
-implemented on 2025-10-04.
+update reflects the new terminal logging system replacing the chat interface,
+implemented on 2025-10-04 (Night Update).
 
 For questions or contributions, refer to the GitHub repository or contact
 the development team.

@@ -39,7 +39,7 @@ Provide a clear, well-structured summary that captures the main points and key t
 
     // Generate HTML and save to disk
     const htmlContent = summaryToHTML(summary);
-    const outputDir = path.join(process.cwd(), 'summary-output');
+    const outputDir = path.join(process.cwd(), 'src', 'app', 'temp', 'summary-output');
     if (!fs.existsSync(outputDir)) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
@@ -53,7 +53,7 @@ Provide a clear, well-structured summary that captures the main points and key t
     return NextResponse.json({
       success: true,
       summary: summary,
-      htmlPath: `/summary-output/${filename}`
+      htmlPath: `/temp/summary-output/${filename}`
     });
 
   } catch (error) {
