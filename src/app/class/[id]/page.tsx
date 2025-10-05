@@ -301,69 +301,65 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
   return (
     <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100">
-      {/* Header with back button and title */}
-      <div className="flex items-center gap-4 p-6 border-b border-zinc-200 dark:border-zinc-700">
-        <Link href="/" className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="m15 18-6-6 6-6" />
-          </svg>
-        </Link>
-        {classData ? (
-          isEditingTitle ? (
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={editingTitle}
-                onChange={(e) => setEditingTitle(e.target.value)}
-                onKeyDown={handleKeyPress}
-                onBlur={handleSaveTitle}
-                className="text-2xl font-bold bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600"
-                autoFocus
-              />
-              <button
-                onClick={handleSaveTitle}
-                className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
-                title="Save"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="20,6 9,17 4,12"></polyline>
-                </svg>
-              </button>
-              <button
-                onClick={handleCancelEditTitle}
-                className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
-                title="Cancel"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold">{classData.name}</h1>
-              <button
-                onClick={handleStartEditTitle}
-                className="p-1 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
-                title="Edit title"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                  <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                </svg>
-              </button>
-            </div>
-          )
-        ) : (
-          <h1 className="text-2xl font-bold text-zinc-500">Loading...</h1>
-        )}
-      </div>
-
       {classData ? (
-        <div className="flex h-[calc(100vh-120px)]">
-          {/* Left Column - File Management & Terminal */}
+        <div className="flex h-screen">
+          {/* Left Column - Back Button, Title, File Management & Terminal */}
           <div className="w-1/4 border-r border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
+            {/* Header with back button and title */}
+            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-700">
+              <Link href="/" className="p-2 rounded-lg hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+              </Link>
+              {isEditingTitle ? (
+                <div className="flex items-center gap-2 flex-1">
+                  <input
+                    type="text"
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onKeyDown={handleKeyPress}
+                    onBlur={handleSaveTitle}
+                    className="text-xl font-bold bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600 flex-1"
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveTitle}
+                    className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                    title="Save"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20,6 9,17 4,12"></polyline>
+                    </svg>
+                  </button>
+                  <button
+                    onClick={handleCancelEditTitle}
+                    className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                    title="Cancel"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <h1 className="text-xl font-bold truncate">{classData.name}</h1>
+                  <button
+                    onClick={handleStartEditTitle}
+                    className="p-1 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded flex-shrink-0"
+                    title="Edit title"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                </div>
+              )}
+            </div>
+
             <h2 className="text-lg font-semibold mb-4">Files</h2>
             <div className="space-y-2 mb-6">
               {classData.files.map((file, index) => (
@@ -654,7 +650,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
           </div>
         </div>
       ) : (
-        <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+        <div className="flex items-center justify-center h-screen">
           <p className="text-center text-red-500">Error: Could not find data for class ID: {resolvedParams.id}</p>
         </div>
       )}
