@@ -666,33 +666,29 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
               {/* QR Code Display */}
               {classData.generatedContent?.qrCode && (
-                <div className="mt-4 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <img
-                        src={classData.generatedContent.qrCode.dataURL}
-                        alt="Lesson QR Code"
-                        className="w-20 h-20 flex-shrink-0 cursor-pointer"
-                        onClick={() => {
-                          // Copy QR code image to clipboard
-                          fetch(classData.generatedContent.qrCode.dataURL)
-                            .then(res => res.blob())
-                            .then(blob => {
-                              const item = new ClipboardItem({ 'image/png': blob });
-                              navigator.clipboard.write([item]);
-                              addTerminalLog('QR code image copied to clipboard', 'success');
-                            })
-                            .catch(err => addTerminalLog('Failed to copy QR code image', 'error'));
-                        }}
-                        title="Click to copy QR code image"
-                      />
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs text-green-600 dark:text-green-300 truncate">
-                          {classData.generatedContent.qrCode.url}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                  <div className="text-center">
+                    <img
+                      src={classData.generatedContent.qrCode.dataURL}
+                      alt="Lesson QR Code"
+                      className="w-24 h-24 sm:w-28 sm:h-28 mx-auto cursor-pointer mb-3"
+                      onClick={() => {
+                        // Copy QR code image to clipboard
+                        fetch(classData.generatedContent.qrCode.dataURL)
+                          .then(res => res.blob())
+                          .then(blob => {
+                            const item = new ClipboardItem({ 'image/png': blob });
+                            navigator.clipboard.write([item]);
+                            addTerminalLog('QR code image copied to clipboard', 'success');
+                          })
+                          .catch(err => addTerminalLog('Failed to copy QR code image', 'error'));
+                      }}
+                      title="Click to copy QR code image"
+                    />
+                    <p className="text-xs text-green-600 dark:text-green-300 mb-3 break-all">
+                      {classData.generatedContent.qrCode.url}
+                    </p>
+                    <div className="flex gap-2 justify-center">
                       <button
                         onClick={async () => {
                           try {
@@ -702,20 +698,18 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                             addTerminalLog('Failed to copy URL', 'error');
                           }
                         }}
-                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
-                        title="Copy URL"
+                        className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium"
                       >
-                        📋
+                        Copy Link
                       </button>
                       <button
                         onClick={() => {
                           updateClassGeneratedContent(resolvedParams.id, { qrCode: undefined });
                           addTerminalLog('QR code cleared', 'info');
                         }}
-                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs"
-                        title="Clear QR Code"
+                        className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium"
                       >
-                        ×
+                        Remove QR Code
                       </button>
                     </div>
                   </div>
