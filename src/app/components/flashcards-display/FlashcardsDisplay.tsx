@@ -88,7 +88,7 @@ export default function FlashcardsDisplay({ flashcards, onClose }: FlashcardsDis
           >
             {/* Front of card */}
             <div
-              className="absolute inset-0 w-full h-full bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-500 dark:border-green-600 rounded-xl shadow-lg flex items-center justify-center p-8 backface-hidden"
+              className="absolute inset-0 w-full h-full bg-white dark:bg-zinc-800 border-2 border-green-500 dark:border-green-600 rounded-xl shadow-lg flex items-center justify-center p-8 backface-hidden"
               style={{ backfaceVisibility: 'hidden' }}
             >
               <div className="text-center">
@@ -106,7 +106,7 @@ export default function FlashcardsDisplay({ flashcards, onClose }: FlashcardsDis
 
             {/* Back of card */}
             <div
-              className="absolute inset-0 w-full h-full bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border-2 border-emerald-500 dark:border-emerald-600 rounded-xl shadow-lg flex items-center justify-center p-8 backface-hidden"
+              className="absolute inset-0 w-full h-full bg-white dark:bg-zinc-800 border-2 border-emerald-500 dark:border-emerald-600 rounded-xl shadow-lg flex items-center justify-center p-8 backface-hidden"
               style={{
                 backfaceVisibility: 'hidden',
                 transform: 'rotateY(180deg)'

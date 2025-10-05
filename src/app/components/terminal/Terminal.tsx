@@ -38,7 +38,7 @@ export default function Terminal() {
       {/* Terminal Display */}
       <div
         ref={terminalRef}
-        className="flex-1 bg-zinc-900 border border-white rounded-lg p-4 font-mono text-sm text-white overflow-y-auto min-h-[200px] max-h-[400px]"
+        className="flex-1 bg-zinc-900 border border-white rounded-lg p-4 font-mono text-sm text-white overflow-y-auto min-h-[200px]"
         style={{ scrollbarWidth: 'thin', scrollbarColor: '#52525b #18181b' }}
       >
         {terminalLogs.length === 0 ? (

@@ -1,14 +1,4 @@
-/**
- * Converts flashcards array into interactive HTML format with flip animations
- */
-export function flashcardsToHTML(flashcardsData) {
-  if (!flashcardsData || !Array.isArray(flashcardsData) || flashcardsData.length === 0) {
-    throw new Error('Invalid flashcards data provided');
-  }
 
-  const flashcardsJSON = JSON.stringify(flashcardsData);
-
-  const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -248,7 +238,7 @@ export function flashcardsToHTML(flashcardsData) {
     <div class="flashcards-container">
         <div class="flashcards-header">
             <h1>🎴 Interactive Flashcards</h1>
-            <p class="progress-info" id="progressInfo">Card 1 of ${flashcardsData.length}</p>
+            <p class="progress-info" id="progressInfo">Card 1 of 24</p>
         </div>
 
         <div class="flashcards-content">
@@ -300,7 +290,7 @@ export function flashcardsToHTML(flashcardsData) {
 
         <div class="flashcards-footer">
             <div class="stats">
-                ${flashcardsData.length} flashcard${flashcardsData.length !== 1 ? 's' : ''} total
+                24 flashcards total
             </div>
             <button class="restart-btn" onclick="restart()">
                 Restart
@@ -309,7 +299,7 @@ export function flashcardsToHTML(flashcardsData) {
     </div>
 
     <script>
-        const flashcards = ${flashcardsJSON};
+        const flashcards = [{"front":"What is Artemios Kayas' expected graduation year for his Bachelor of Arts in Computer Science from Boston University?","back":"May 2026"},{"front":"Which award did Artemios Kayas receive at Boston University?","back":"Adonis Fragothakis Greek Scholar Award"},{"front":"What certification did Artemios Kayas earn while at Framingham State University?","back":"Google IT Certification"},{"front":"What was Artemios Kayas' role at Hitachi Digital Services?","back":"Finance Intern"},{"front":"As a Finance Intern at Hitachi Digital Services, what was Artemios' responsibility regarding financial data?","back":"Verifying the accuracy of financial data inputs for an 8 million dollar warehouse project proposal."},{"front":"What type of solutions did Artemios research and recommend at Hitachi Digital Services for computer vision software?","back":"Cost-effective LiDAR solutions"},{"front":"What was Artemios Kayas' role at Boston University starting January 2024?","back":"Research Assistant"},{"front":"What kind of prototypes did Artemios build and deploy as a Research Assistant at Boston University?","back":"AI-powered language tutor prototypes"},{"front":"How many students did the AI-powered language tutor prototypes support?","back":"70 students across 4 classes"},{"front":"What was Artemios' role at Collegium Pharmaceuticals?","back":"IT Intern"},{"front":"What did Artemios do to transition IT operations at Collegium Pharmaceuticals?","back":"Built processes for a newly formed IT team to transition from third-party vendors to an internal system."},{"front":"What key component of data migration did Artemios implement at Collegium Pharmaceuticals?","back":"Migration from on-site Active Directory to Microsoft Azure for 300 employees' operations data."},{"front":"What was the name of the full-stack educational platform project Artemios led at BU Spark!?","back":"WordWyrm"},{"front":"What technologies did Artemios use to build backend services and core features for WordWyrm?","back":"Next.js and TypeScript"},{"front":"Which project involved directing and mentoring a team of 6 engineers to drive end-to-end project lifecycles?","back":"Blue Dev Digital"},{"front":"What technologies were used for client and in-house projects at Blue Dev Digital?","back":"Next.js, Vite, React, and TypeScript"},{"front":"What is GreekGames.io?","back":"An independent educational gaming website developed by Artemios Kayas."},{"front":"What technologies were used to develop GreekGames.io?","back":"Next.js, TypeScript, and Vercel"},{"front":"List some programming languages Artemios Kayas is proficient in.","back":"HTML, CSS, JavaScript, TypeScript, Swift, SwiftUI, Python, C, C++, C#, Java"},{"front":"Which hackathons has Artemios Kayas won multiple times?","back":"WHACK (2023, 2024) and BU Hacks (2023, 2024)"},{"front":"What was Artemios' achievement at MIT iQuack 2024?","back":"2nd Place"},{"front":"Name two of Artemios Kayas' interests.","back":"Camping, Hiking, Biking, Martial Arts, Videogames, Nature Photography, Tinkering, Hackathons, Journaling, Reading (any two from this list)"},{"front":"What is the primary focus of Artemios Kayas' coursework at Boston University?","back":"Computer Science, including Web App Development, Databases, Software Engineering, and Full Stack Development."},{"front":"At Collegium Pharmaceuticals, what was developed in collaboration with legal and compliance?","back":"Cybersecurity protocols to ensure regulatory standards."}];
         let currentIndex = 0;
         let isFlipped = false;
 
@@ -317,7 +307,7 @@ export function flashcardsToHTML(flashcardsData) {
             const card = flashcards[currentIndex];
             document.getElementById('frontText').textContent = card.front;
             document.getElementById('backText').textContent = card.back;
-            document.getElementById('progressInfo').textContent = \`Card \${currentIndex + 1} of \${flashcards.length}\`;
+            document.getElementById('progressInfo').textContent = `Card ${currentIndex + 1} of ${flashcards.length}`;
 
             const progress = ((currentIndex + 1) / flashcards.length) * 100;
             document.getElementById('progressFill').style.width = progress + '%';
@@ -380,7 +370,4 @@ export function flashcardsToHTML(flashcardsData) {
         updateCard();
     </script>
 </body>
-</html>`;
-
-  return html;
-}
+</html>

@@ -242,7 +242,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       </div>
 
       {classData ? (
-        <div className="flex h-[calc(100vh-80px)]">
+        <div className="flex h-[calc(100vh-120px)]">
           {/* Left Column - File Management */}
           <div className="w-1/4 border-r border-zinc-200 dark:border-zinc-700 p-6">
             <h2 className="text-lg font-semibold mb-4">Files</h2>
@@ -440,9 +440,11 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             </div>
 
             {/* Terminal Section */}
-            <div className="flex-1 flex flex-col">
+            <div className="flex-1 flex flex-col min-h-0">
               <h2 className="text-lg font-semibold mb-4">Terminal</h2>
-              <Terminal />
+              <div className="flex-1 min-h-0">
+                <Terminal />
+              </div>
             </div>
           </div>
         </div>

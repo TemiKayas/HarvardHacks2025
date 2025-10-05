@@ -1,14 +1,4 @@
-/**
- * Converts flashcards array into interactive HTML format with flip animations
- */
-export function flashcardsToHTML(flashcardsData) {
-  if (!flashcardsData || !Array.isArray(flashcardsData) || flashcardsData.length === 0) {
-    throw new Error('Invalid flashcards data provided');
-  }
 
-  const flashcardsJSON = JSON.stringify(flashcardsData);
-
-  const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -248,7 +238,7 @@ export function flashcardsToHTML(flashcardsData) {
     <div class="flashcards-container">
         <div class="flashcards-header">
             <h1>🎴 Interactive Flashcards</h1>
-            <p class="progress-info" id="progressInfo">Card 1 of ${flashcardsData.length}</p>
+            <p class="progress-info" id="progressInfo">Card 1 of 20</p>
         </div>
 
         <div class="flashcards-content">
@@ -300,7 +290,7 @@ export function flashcardsToHTML(flashcardsData) {
 
         <div class="flashcards-footer">
             <div class="stats">
-                ${flashcardsData.length} flashcard${flashcardsData.length !== 1 ? 's' : ''} total
+                20 flashcards total
             </div>
             <button class="restart-btn" onclick="restart()">
                 Restart
@@ -309,7 +299,7 @@ export function flashcardsToHTML(flashcardsData) {
     </div>
 
     <script>
-        const flashcards = ${flashcardsJSON};
+        const flashcards = [{"front":"What is Artemios Kayas's expected degree and major from Boston University?","back":"Bachelor of Arts in Computer Science, expected May 2026."},{"front":"What degree did Artemios Kayas earn from Framingham State University?","back":"Bachelor of Arts in Mathematics (Sept 2021 – May 2023)."},{"front":"What professional certification does Artemios Kayas hold from Google?","back":"Google IT Certification."},{"front":"What academic award did Artemios Kayas receive at Boston University?","back":"Adonis Fragothakis Greek Scholar Award."},{"front":"What was Artemios Kayas's role at Hitachi Digital Services?","back":"Finance Intern (June 2024 - Sept 2025)."},{"front":"What was a key contribution by Artemios Kayas to an $8 million warehouse project at Hitachi Digital Services?","back":"Supported proposal creation and verified the accuracy of financial data inputs."},{"front":"What was Artemios Kayas's role at Boston University starting January 2024?","back":"Research Assistant."},{"front":"What AI-powered tool did Artemios Kayas build and deploy for students as a Research Assistant at Boston University?","back":"AI-powered language tutor prototypes, serving 70 students across 4 classes."},{"front":"What was Artemios Kayas's role at Collegium Pharmaceuticals?","back":"IT Intern (June 2023 - Aug 2023)."},{"front":"What major data migration project did Artemios Kayas support at Collegium Pharmaceuticals?","back":"Migration of 23 years of operations data for 300 employees from on-site Active Directory to Microsoft Azure."},{"front":"What cybersecurity initiative did Artemios Kayas implement at Collegium Pharmaceuticals?","back":"Developed and implemented cybersecurity protocols in collaboration with legal and compliance."},{"front":"What was the WordWyrm project and Artemios Kayas's role in it?","back":"A full stack educational platform for which Artemios was selected as team lead in a BU Spark! program."},{"front":"What core technologies did Artemios Kayas use to build backend services for WordWyrm?","back":"Next.js and TypeScript."},{"front":"What was Artemios Kayas's leadership role at Blue Dev Digital?","back":"Directed and mentored a team of 6 engineers, driving end-to-end project lifecycles."},{"front":"What is GreekGames.io?","back":"An independent educational gaming website developed by Artemios Kayas using Next.js, TypeScript, and Vercel."},{"front":"How many game curriculums did Artemios Kayas design for GreekGames.io?","back":"6 game curriculums."},{"front":"Name four programming languages Artemios Kayas lists in his skills.","back":"HTML, CSS, JavaScript, TypeScript, Swift, SwiftUI, Python, C, C++, C#, Java (any four)."},{"front":"Name two hackathons where Artemios Kayas was a winner in multiple years.","back":"WHACK Winner (2023, 2024) and BU Hacks Winner (2023, 2024)."},{"front":"What was Artemios Kayas's achievement at MIT iQuack 2024?","back":"2nd Place."},{"front":"What are some of Artemios Kayas's listed interests?","back":"Camping, Hiking, Biking, Martial Arts, Videogames, Nature Photography, Tinkering, Hackathons, Journaling, Reading."}];
         let currentIndex = 0;
         let isFlipped = false;
 
@@ -317,7 +307,7 @@ export function flashcardsToHTML(flashcardsData) {
             const card = flashcards[currentIndex];
             document.getElementById('frontText').textContent = card.front;
             document.getElementById('backText').textContent = card.back;
-            document.getElementById('progressInfo').textContent = \`Card \${currentIndex + 1} of \${flashcards.length}\`;
+            document.getElementById('progressInfo').textContent = `Card ${currentIndex + 1} of ${flashcards.length}`;
 
             const progress = ((currentIndex + 1) / flashcards.length) * 100;
             document.getElementById('progressFill').style.width = progress + '%';
@@ -380,7 +370,4 @@ export function flashcardsToHTML(flashcardsData) {
         updateCard();
     </script>
 </body>
-</html>`;
-
-  return html;
-}
+</html>
