@@ -99,6 +99,7 @@ const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass
   const [files, setFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingStatus, setProcessingStatus] = useState('');
+  const [className, setClassName] = useState('');
   const router = useRouter();
 
   const onDrop = useCallback((acceptedFiles: FileWithPath[]) => {
@@ -172,7 +173,7 @@ const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass
 
       addClass({
         id: newClassId,
-        name: 'Untitled Lesson',
+        name: className.trim() || 'Untitled Lesson',
         files: processedFiles,
       });
 
@@ -188,6 +189,22 @@ const CreateClassModal = ({ onClose, addClass }: { onClose: () => void; addClass
     <div className="fixed inset-0 bg-black/60 flex justify-center items-center">
       <div className="bg-white dark:bg-zinc-900 p-8 rounded-lg shadow-2xl w-full max-w-2xl">
         <h2 className="text-2xl font-bold mb-4">Create New Class & Upload Files</h2>
+        
+        {/* Class Name Input */}
+        <div className="mb-4">
+          <label htmlFor="className" className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-2">
+            Class Name
+          </label>
+          <input
+            id="className"
+            type="text"
+            value={className}
+            onChange={(e) => setClassName(e.target.value)}
+            placeholder="Enter class name (optional)"
+            className="w-full px-3 py-2 border border-zinc-300 dark:border-zinc-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-zinc-800 dark:text-zinc-100"
+          />
+        </div>
+
         <div
           {...getRootProps()}
           className={`flex flex-col items-center justify-center w-full h-64 p-4 border-2 border-dashed rounded-lg cursor-pointer ${isDragActive ? 'border-blue-500 bg-blue-500/10' : 'border-zinc-300 dark:border-zinc-600'} transition-colors`}

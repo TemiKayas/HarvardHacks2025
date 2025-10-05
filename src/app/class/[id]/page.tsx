@@ -1,6 +1,6 @@
 "use client";
 
-import { useClassStore, renameClass, FileData, QuizQuestion, GeneratedContent } from '../../lib/store';
+import { useClassStore, FileData, QuizQuestion, GeneratedContent } from '../../lib/store';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import QuizDisplay from '../../components/quiz-display/QuizDisplay';
@@ -19,6 +19,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const updateClassGeneratedContent = useClassStore((state) => state.updateClassGeneratedContent);
   const updateQuizQuestion = useClassStore((state) => state.updateQuizQuestion);
   const deleteQuizQuestion = useClassStore((state) => state.deleteQuizQuestion);
+  const updateClassName = useClassStore((state) => state.updateClassName);
   const addTerminalLog = useClassStore((state) => state.addTerminalLog);
 
   // UI State
@@ -28,10 +29,34 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const [currentAction, setCurrentAction] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'quiz' | 'summary' | 'keyPoints' | 'flashcards' | null>(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [editingTitle, setEditingTitle] = useState('');
 
-  //rename logic
-  const handleRename = () => {
-    renameClass(resolvedParams.id);
+  // Title editing logic
+  const handleStartEditTitle = () => {
+    setEditingTitle(classData?.name || '');
+    setIsEditingTitle(true);
+  };
+
+  const handleSaveTitle = () => {
+    if (editingTitle.trim() && editingTitle.trim() !== classData?.name) {
+      updateClassName(resolvedParams.id, editingTitle.trim());
+      addTerminalLog(`Class renamed to: ${editingTitle.trim()}`, 'success');
+    }
+    setIsEditingTitle(false);
+  };
+
+  const handleCancelEditTitle = () => {
+    setEditingTitle('');
+    setIsEditingTitle(false);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSaveTitle();
+    } else if (e.key === 'Escape') {
+      handleCancelEditTitle();
+    }
   };
 
 
@@ -233,9 +258,52 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
           </svg>
         </Link>
         {classData ? (
-          <h1 className="text-2xl font-bold cursor-pointer hover:text-blue-600 transition-colors" onClick={handleRename}>
-            {classData.name}
-          </h1>
+          isEditingTitle ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editingTitle}
+                onChange={(e) => setEditingTitle(e.target.value)}
+                onKeyDown={handleKeyPress}
+                onBlur={handleSaveTitle}
+                className="text-2xl font-bold bg-transparent border-b-2 border-blue-500 focus:outline-none focus:border-blue-600"
+                autoFocus
+              />
+              <button
+                onClick={handleSaveTitle}
+                className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                title="Save"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20,6 9,17 4,12"></polyline>
+                </svg>
+              </button>
+              <button
+                onClick={handleCancelEditTitle}
+                className="p-1 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                title="Cancel"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold">{classData.name}</h1>
+              <button
+                onClick={handleStartEditTitle}
+                className="p-1 text-zinc-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded"
+                title="Edit title"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="m18.5 2.5 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
+              </button>
+            </div>
+          )
         ) : (
           <h1 className="text-2xl font-bold text-zinc-500">Loading...</h1>
         )}
@@ -343,7 +411,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             <div className="flex-1 overflow-y-auto">
               {activeTab === 'quiz' && classData.generatedContent?.quiz ? (
                 <QuizDisplay
-                  questions={classData.generatedContent.quiz}
+                  questions={classData.generatedContent.quiz.filter(q => q.type === 'MCQ') as any}
                   onClose={() => setActiveTab(null)}
                 />
               ) : activeTab === 'summary' && classData.generatedContent?.summary ? (

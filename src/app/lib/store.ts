@@ -65,6 +65,7 @@ interface ClassStore {
   addChatMessage: (classId: string, message: { role: 'user' | 'assistant'; content: string }) => void;
   updateQuizQuestion: (classId: string, questionIndex: number, question: QuizQuestion) => void;
   deleteQuizQuestion: (classId: string, questionIndex: number) => void;
+  updateClassName: (classId: string, newName: string) => void;
   addTerminalLog: (message: string, type?: 'info' | 'success' | 'error' | 'warning') => void;
   clearTerminalLogs: () => void;
 }
@@ -180,6 +181,13 @@ export const useClassStore = create<ClassStore>()(
                   }
                 }
               : cls
+          ),
+        }));
+      },
+      updateClassName: (classId: string, newName: string) => {
+        set((state) => ({
+          classes: state.classes.map((cls) =>
+            cls.id === classId ? { ...cls, name: newName } : cls
           ),
         }));
       },
