@@ -19,6 +19,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const updateClassGeneratedContent = useClassStore((state) => state.updateClassGeneratedContent);
   const updateClassName = useClassStore((state) => state.updateClassName);
   const addTerminalLog = useClassStore((state) => state.addTerminalLog);
+  const generateQRCode = useClassStore((state) => state.generateQRCode);
 
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
@@ -32,8 +33,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const [numFlashcards, setNumFlashcards] = useState(10);
   const [showKeyPointsOptions, setShowKeyPointsOptions] = useState(false);
   const [numKeyPoints, setNumKeyPoints] = useState(10);
-  const [showInstructorForm, setShowInstructorForm] = useState(false);
-  const [instructorNote, setInstructorNote] = useState('');
 
   // Title editing logic
   const handleStartEditTitle = () => {
@@ -277,9 +276,16 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   };
 
   // New handler functions
-  const handleQRCode = () => {
-    // Placeholder for QR code functionality
-    alert('QR Code functionality will be implemented soon!');
+  const handleQRCode = async () => {
+    try {
+      const baseURL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      const lessonURL = `${baseURL}/lesson/${resolvedParams.id}`;
+
+      await generateQRCode(resolvedParams.id, lessonURL);
+      addTerminalLog('QR code generated successfully for student access', 'success');
+    } catch (error) {
+      addTerminalLog(`Failed to generate QR code: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    }
   };
 
   const handleInstructorDashboard = () => {
@@ -287,30 +293,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     window.open(`/instructor/${resolvedParams.id}`, '_blank');
   };
 
-  const handleInstructorFormSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!instructorNote.trim()) return;
-
-    try {
-      // For now, just log the instructor note
-      // In a real implementation, this could be sent to an API or stored
-      addTerminalLog(`Instructor note submitted: ${instructorNote.trim()}`, 'info');
-
-      // You could also store this in the class data if needed
-      // updateClassGeneratedContent(resolvedParams.id, {
-      //   instructorNotes: [...(classData.generatedContent?.instructorNotes || []), {
-      //     note: instructorNote.trim(),
-      //     timestamp: new Date()
-      //   }]
-      // });
-
-      setInstructorNote('');
-      setShowInstructorForm(false);
-
-    } catch (error) {
-      addTerminalLog(`Failed to submit instructor note: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-    }
-  };
 
 
   // This prevents hydration errors by waiting for the component to mount on the client
@@ -664,19 +646,13 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   onClick={() => handleQRCode()}
                   className="w-full p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
-                  QR Code
+                  Generate QR Code
                 </button>
                 <button
                   onClick={() => handleInstructorDashboard()}
                   className="w-full p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
                 >
                   Instructor Dashboard
-                </button>
-                <button
-                  onClick={() => setShowInstructorForm(!showInstructorForm)}
-                  className="w-full p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
-                >
-                  Add Instructor Note
                 </button>
                 {classData.generatedContent?.studentResponses && classData.generatedContent.studentResponses.length > 0 && (
                   <Link
@@ -688,37 +664,64 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                 )}
               </div>
 
-              {/* Instructor Form */}
-              {showInstructorForm && (
-                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
-                  <h3 className="text-lg font-semibold mb-4 text-blue-800 dark:text-blue-200">Add Instructor Note</h3>
-                  <form onSubmit={handleInstructorFormSubmit}>
-                    <textarea
-                      value={instructorNote}
-                      onChange={(e) => setInstructorNote(e.target.value)}
-                      placeholder="Add a note for the instructor dashboard..."
-                      className="w-full p-3 border border-blue-300 dark:border-blue-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 resize-none"
-                      rows={4}
-                    />
-                    <div className="flex gap-2 mt-4">
+              {/* QR Code Display */}
+              {classData.generatedContent?.qrCode && (
+                <div className="mt-4 p-2 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <img
+                        src={classData.generatedContent.qrCode.dataURL}
+                        alt="Lesson QR Code"
+                        className="w-20 h-20 flex-shrink-0 cursor-pointer"
+                        onClick={() => {
+                          // Copy QR code image to clipboard
+                          fetch(classData.generatedContent.qrCode.dataURL)
+                            .then(res => res.blob())
+                            .then(blob => {
+                              const item = new ClipboardItem({ 'image/png': blob });
+                              navigator.clipboard.write([item]);
+                              addTerminalLog('QR code image copied to clipboard', 'success');
+                            })
+                            .catch(err => addTerminalLog('Failed to copy QR code image', 'error'));
+                        }}
+                        title="Click to copy QR code image"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs text-green-600 dark:text-green-300 truncate">
+                          {classData.generatedContent.qrCode.url}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-1 flex-shrink-0">
                       <button
-                        type="submit"
-                        className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
-                        disabled={!instructorNote.trim()}
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(classData.generatedContent.qrCode.url);
+                            addTerminalLog('URL copied to clipboard', 'success');
+                          } catch (err) {
+                            addTerminalLog('Failed to copy URL', 'error');
+                          }
+                        }}
+                        className="px-2 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs"
+                        title="Copy URL"
                       >
-                        Submit Note
+                        📋
                       </button>
                       <button
-                        type="button"
-                        onClick={() => setShowInstructorForm(false)}
-                        className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm font-medium"
+                        onClick={() => {
+                          updateClassGeneratedContent(resolvedParams.id, { qrCode: undefined });
+                          addTerminalLog('QR code cleared', 'info');
+                        }}
+                        className="px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs"
+                        title="Clear QR Code"
                       >
-                        Cancel
+                        ×
                       </button>
                     </div>
-                  </form>
+                  </div>
                 </div>
               )}
+
           </div>
         </div>
       ) : (

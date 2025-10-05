@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useClassStore } from '@/src/app/lib/store';
-import QRGenerator from '@/src/app/lib/qr-generator';
 
 interface MCQQuestion {
   question: string;
@@ -42,10 +41,7 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
   // Edit mode state
   const [editedQuestions, setEditedQuestions] = useState<QuizQuestion[]>(questions);
   const [undoHistory, setUndoHistory] = useState<QuizQuestion[][]>([]);
-  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
-  const [showQRCode, setShowQRCode] = useState(false);
-  const { updateQuizQuestion, deleteQuizQuestion, addQuizQuestion, addTerminalLog, generateQRCode } = useClassStore();
-  const classData = useClassStore((state) => state.classes.find(c => c.id === classId));
+  const { updateQuizQuestion, deleteQuizQuestion, addQuizQuestion, addTerminalLog } = useClassStore();
 
   // Sync editedQuestions when questions prop changes
   useEffect(() => {
@@ -196,21 +192,6 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
     }
 
     addTerminalLog('Quiz saved successfully', 'success');
-
-    // Generate QR Code
-    setIsGeneratingQR(true);
-    try {
-      const baseURL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      const lessonURL = QRGenerator.generateQuizURL(baseURL, classId);
-
-      await generateQRCode(classId, lessonURL);
-      addTerminalLog('QR code generated successfully for student access', 'success');
-      setShowQRCode(true);
-    } catch (error) {
-      addTerminalLog(`Failed to generate QR code: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
-    } finally {
-      setIsGeneratingQR(false);
-    }
 
     setUndoHistory([]); // Clear undo history after successful save
     onSave?.();
@@ -375,47 +356,15 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
           </div>
         </div>
 
-        {/* QR Code Display */}
-        {showQRCode && (
-          <div className="p-6 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800">
-            <div className="text-center">
-              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-4">
-                QR Code Generated Successfully!
-              </h3>
-              <p className="text-sm text-green-600 dark:text-green-300 mb-4">
-                Students can scan this QR code to take the quiz
-              </p>
-              <div className="inline-block p-4 bg-white dark:bg-zinc-800 rounded-lg border-2 border-green-200 dark:border-green-700">
-                <img
-                  src={classData?.generatedContent?.qrCode?.dataURL}
-                  alt="Quiz QR Code"
-                  className="w-48 h-48 mx-auto"
-                />
-              </div>
-              <div className="mt-4">
-                <p className="text-xs text-green-600 dark:text-green-300 break-all">
-                  URL: {classData?.generatedContent?.qrCode?.url}
-                </p>
-              </div>
-              <button
-                onClick={() => setShowQRCode(false)}
-                className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-              >
-                Close QR Code
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Footer with Save/Undo */}
         <div className="p-6 bg-zinc-50 dark:bg-zinc-800 border-t border-zinc-200 dark:border-zinc-700">
           <div className="flex gap-4">
             <button
               onClick={handleSaveChanges}
-              disabled={isGeneratingQR}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-4 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 disabled:from-zinc-400 disabled:to-zinc-400 disabled:cursor-not-allowed transition-all text-lg"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-4 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all text-lg"
             >
-              {isGeneratingQR ? 'Generating QR Code...' : 'Save Changes and Generate QR Code'}
+              Save Changes
             </button>
             <button
               onClick={handleUndo}
