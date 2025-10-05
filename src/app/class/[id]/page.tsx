@@ -252,12 +252,15 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
                   : 'bg-white dark:bg-zinc-800 border-zinc-200 dark:border-zinc-700'
                   }`}>
-                  <div className="flex items-center flex-1 min-w-0">
+                  <div 
+                    className="flex items-center flex-1 min-w-0 cursor-pointer"
+                    onClick={() => handleToggleFileSelection(index)}
+                  >
                     <input
                       type="checkbox"
                       checked={file.selected || false}
                       onChange={() => handleToggleFileSelection(index)}
-                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      className="mr-3 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded pointer-events-none"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium truncate">{file.name}</p>
