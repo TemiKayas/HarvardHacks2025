@@ -6,10 +6,12 @@ import Link from 'next/link';
 
 export default function AdminResultsPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
-  const classData = useClassStore((state) => state.classes.find(c => c.id === resolvedParams.id));
+  // Use the entire classes array to ensure reactivity
+  const allClasses = useClassStore((state) => state.classes);
+  const currentClassData = allClasses.find(c => c.id === resolvedParams.id);
   const { clearStudentResponses, addTerminalLog } = useClassStore();
 
-  if (!classData) {
+  if (!currentClassData) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 flex items-center justify-center">
         <p className="text-center text-red-500">Error: Could not find data for class ID: {resolvedParams.id}</p>
@@ -17,8 +19,7 @@ export default function AdminResultsPage({ params }: { params: Promise<{ id: str
     );
   }
 
-  const responses = classData.generatedContent?.studentResponses || [];
-  const quiz = classData.generatedContent?.quiz;
+  const responses = currentClassData.generatedContent?.studentResponses || [];
 
   // Calculate analytics
   const totalStudents = responses.length;
@@ -45,7 +46,7 @@ export default function AdminResultsPage({ params }: { params: Promise<{ id: str
             <path d="m15 18-6-6 6-6"/>
           </svg>
         </Link>
-        <h1 className="text-2xl font-bold">{classData.name} - Quiz Results</h1>
+        <h1 className="text-2xl font-bold">{currentClassData.name} - Quiz Results</h1>
       </div>
 
       <div className="p-6">
@@ -58,7 +59,7 @@ export default function AdminResultsPage({ params }: { params: Promise<{ id: str
 
           <div className="bg-white dark:bg-zinc-800 p-6 rounded-lg border border-zinc-200 dark:border-zinc-700">
             <h3 className="text-lg font-semibold mb-2">Average Score</h3>
-            <p className="text-3xl font-bold text-green-600">{averageScore}/{quiz?.length || 0}</p>
+            <p className="text-3xl font-bold text-green-600">{averageScore}/{currentClassData.generatedContent?.quiz?.length || 0}</p>
             <p className="text-sm text-zinc-500">{averagePercentage}%</p>
           </div>
 
@@ -121,7 +122,7 @@ export default function AdminResultsPage({ params }: { params: Promise<{ id: str
                     <div className="mt-4">
                       <h5 className="font-medium mb-2">Question Breakdown:</h5>
                       <div className="grid gap-2">
-                        {quiz?.map((question, qIndex) => {
+                        {currentClassData.generatedContent.quiz?.map((question, qIndex) => {
                           const studentAnswer = response.answers[qIndex];
                           const isCorrect = studentAnswer === question.correctAnswer;
 
@@ -173,7 +174,7 @@ export default function AdminResultsPage({ params }: { params: Promise<{ id: str
               </div>
               <div className="p-6">
                 <div className="grid gap-4">
-                  {quiz?.map((question, qIndex) => {
+                    {currentClassData.generatedContent.quiz?.map((question, qIndex) => {
                     const correctCount = responses.filter(r => r.answers[qIndex] === question.correctAnswer).length;
                     const percentage = Math.round((correctCount / totalStudents) * 100);
 

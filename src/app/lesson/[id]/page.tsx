@@ -45,7 +45,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
         }
       });
 
-      const response: StudentResponse = {
+      const response = {
         studentName: studentName.trim(),
         answers,
         score: correctCount,
