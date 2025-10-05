@@ -4,6 +4,9 @@ import { useClassStore, renameClass, FileData, QuizQuestion, GeneratedContent } 
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import QuizDisplay from '../../components/quiz-display/QuizDisplay';
+import SummaryDisplay from '../../components/summary-display/SummaryDisplay';
+import KeyPointsDisplay from '../../components/keypoints-display/KeyPointsDisplay';
+import FlashcardsDisplay from '../../components/flashcards-display/FlashcardsDisplay';
 
 export default function ClassPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -24,6 +27,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const [currentAction, setCurrentAction] = useState('');
   const [chatMessage, setChatMessage] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
+  const [activeTab, setActiveTab] = useState<'quiz' | 'summary' | 'keyPoints' | 'flashcards' | null>(null);
 
   //rename logic
   const handleRename = () => {
@@ -111,6 +115,9 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
         lastGenerated: 'quiz'
       });
 
+      // Set active tab to quiz
+      setActiveTab('quiz');
+
       // Add success message to chat
       addChatMessage(resolvedParams.id, {
         role: 'assistant',
@@ -173,10 +180,13 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
       updateClassGeneratedContent(resolvedParams.id, generatedContent);
 
+      // Set active tab based on generated content
+      setActiveTab(currentAction as 'summary' | 'keyPoints' | 'flashcards');
+
       // Add to chat history
       addChatMessage(resolvedParams.id, {
         role: 'assistant',
-        content: `Generated ${currentAction} successfully! You can now edit the content below or ask me to make changes.`
+        content: `Generated ${currentAction} successfully! You can now view the content below.`
       });
 
     } catch (error) {
@@ -308,29 +318,82 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
           <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 className="text-lg font-semibold mb-4">Preview & Chat</h2>
 
+            {/* Tab Navigation */}
+            {(classData.generatedContent?.quiz || classData.generatedContent?.summary || classData.generatedContent?.keyPoints || classData.generatedContent?.flashcards) && (
+              <div className="flex gap-2 mb-4 border-b border-zinc-200 dark:border-zinc-700">
+                {classData.generatedContent.quiz && (
+                  <button
+                    onClick={() => setActiveTab('quiz')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === 'quiz'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    Quiz
+                  </button>
+                )}
+                {classData.generatedContent.summary && (
+                  <button
+                    onClick={() => setActiveTab('summary')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === 'summary'
+                        ? 'text-purple-600 border-b-2 border-purple-600'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    Summary
+                  </button>
+                )}
+                {classData.generatedContent.keyPoints && (
+                  <button
+                    onClick={() => setActiveTab('keyPoints')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === 'keyPoints'
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    Key Points
+                  </button>
+                )}
+                {classData.generatedContent.flashcards && (
+                  <button
+                    onClick={() => setActiveTab('flashcards')}
+                    className={`px-4 py-2 font-medium transition-colors ${
+                      activeTab === 'flashcards'
+                        ? 'text-green-600 border-b-2 border-green-600'
+                        : 'text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300'
+                    }`}
+                  >
+                    Flashcards
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Content Preview */}
             <div className="flex-1 mb-4 overflow-y-auto">
-              {classData.generatedContent?.quiz && classData.generatedContent.quiz.length > 0 ? (
+              {activeTab === 'quiz' && classData.generatedContent?.quiz ? (
                 <QuizDisplay
                   questions={classData.generatedContent.quiz}
-                  onClose={() => {
-                    // Clear quiz from generated content
-                    updateClassGeneratedContent(resolvedParams.id, {
-                      quiz: undefined,
-                      lastGenerated: undefined
-                    });
-                  }}
+                  onClose={() => setActiveTab(null)}
                 />
-              ) : classData.generatedContent?.summary ? (
-                <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700">
-                  <h4 className="font-semibold text-xl mb-4">Summary</h4>
-                  <p className="text-gray-700 dark:text-gray-300">{classData.generatedContent.summary}</p>
-                </div>
-              ) : classData.generatedContent?.keyPoints ? (
-                <div className="bg-white dark:bg-zinc-800 rounded-lg p-6 border border-zinc-200 dark:border-zinc-700">
-                  <h4 className="font-semibold text-xl mb-4">Key Points</h4>
-                  <div className="text-gray-700 dark:text-gray-300 whitespace-pre-line">{classData.generatedContent.keyPoints}</div>
-                </div>
+              ) : activeTab === 'summary' && classData.generatedContent?.summary ? (
+                <SummaryDisplay
+                  summary={classData.generatedContent.summary}
+                  onClose={() => setActiveTab(null)}
+                />
+              ) : activeTab === 'keyPoints' && classData.generatedContent?.keyPoints ? (
+                <KeyPointsDisplay
+                  keyPoints={classData.generatedContent.keyPoints}
+                  onClose={() => setActiveTab(null)}
+                />
+              ) : activeTab === 'flashcards' && classData.generatedContent?.flashcards ? (
+                <FlashcardsDisplay
+                  flashcards={classData.generatedContent.flashcards}
+                  onClose={() => setActiveTab(null)}
+                />
               ) : (
                 <div className="flex items-center justify-center h-full text-zinc-400">
                   <p>Select files and generate content to preview here</p>

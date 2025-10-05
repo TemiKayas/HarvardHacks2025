@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from "@google/genai";
+import { summaryToHTML } from '@/src/app/components/summary-to-html';
 import fs from "fs";
 import path from "path";
 
@@ -36,9 +37,23 @@ Provide a clear, well-structured summary that captures the main points and key t
 
     const summary = response.text;
 
+    // Generate HTML and save to disk
+    const htmlContent = summaryToHTML(summary);
+    const outputDir = path.join(process.cwd(), 'summary-output');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const filename = `summary-${Date.now()}.html`;
+    const filepath = path.join(outputDir, filename);
+    fs.writeFileSync(filepath, htmlContent);
+
+    console.log(`✅ Summary HTML saved to ${filepath}`);
+
     return NextResponse.json({
       success: true,
-      summary: summary
+      summary: summary,
+      htmlPath: `/summary-output/${filename}`
     });
 
   } catch (error) {

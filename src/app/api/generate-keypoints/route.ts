@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI } from "@google/genai";
+import { keyPointsToHTML } from '@/src/app/components/keypoints-to-html';
 import fs from "fs";
 import path from "path";
 
@@ -37,9 +38,23 @@ Focus on the most important concepts, definitions, and takeaways.
 
     const keyPoints = response.text;
 
+    // Generate HTML and save to disk
+    const htmlContent = keyPointsToHTML(keyPoints);
+    const outputDir = path.join(process.cwd(), 'keypoints-output');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const filename = `keypoints-${Date.now()}.html`;
+    const filepath = path.join(outputDir, filename);
+    fs.writeFileSync(filepath, htmlContent);
+
+    console.log(`✅ Key points HTML saved to ${filepath}`);
+
     return NextResponse.json({
       success: true,
-      keyPoints: keyPoints
+      keyPoints: keyPoints,
+      htmlPath: `/keypoints-output/${filename}`
     });
 
   } catch (error) {

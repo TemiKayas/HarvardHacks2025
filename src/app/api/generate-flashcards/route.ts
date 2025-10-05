@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenAI, Type } from "@google/genai";
+import { flashcardsToHTML } from '@/src/app/components/flashcards-to-html';
 import fs from "fs";
 import path from "path";
 
@@ -66,9 +67,23 @@ Each flashcard should have a clear question/term on the front and a concise answ
 
     const flashcards = JSON.parse(response.text);
 
+    // Generate HTML and save to disk
+    const htmlContent = flashcardsToHTML(flashcards.flashcards);
+    const outputDir = path.join(process.cwd(), 'flashcards-output');
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    const filename = `flashcards-${Date.now()}.html`;
+    const filepath = path.join(outputDir, filename);
+    fs.writeFileSync(filepath, htmlContent);
+
+    console.log(`✅ Flashcards HTML saved to ${filepath}`);
+
     return NextResponse.json({
       success: true,
-      flashcards: flashcards.flashcards
+      flashcards: flashcards.flashcards,
+      htmlPath: `/flashcards-output/${filename}`
     });
 
   } catch (error) {
