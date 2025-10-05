@@ -1,17 +1,43 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useClassStore, QuizQuestion } from '../../lib/store';
 import { use } from 'react';
 import QuizDisplay from '../../components/quiz-display/QuizDisplay';
 import SummaryDisplay from '../../components/summary-display/SummaryDisplay';
 import KeyPointsDisplay from '../../components/keypoints-display/KeyPointsDisplay';
 import FlashcardsDisplay from '../../components/flashcards-display/FlashcardsDisplay';
+import { useSearchParams } from 'next/navigation';
 
 export default function StudentQuizPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
+  const searchParams = useSearchParams();
   const classData = useClassStore((state) => state.classes.find(c => c.id === resolvedParams.id));
   const { addStudentResponse, addTerminalLog } = useClassStore();
+
+  // Decode quiz data from URL if available
+  const [urlQuizData, setUrlQuizData] = useState<{
+    quiz?: QuizQuestion[];
+    summary?: string;
+    keyPoints?: string;
+    flashcards?: Array<{ front: string; back: string }>;
+    className?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const encodedData = searchParams.get('data');
+    if (encodedData) {
+      try {
+        const decodedData = JSON.parse(atob(encodedData));
+        setUrlQuizData(decodedData);
+      } catch (error) {
+        console.error('Failed to decode quiz data from URL:', error);
+      }
+    }
+  }, [searchParams]);
+
+  // Use URL data if available, otherwise fall back to localStorage
+  const quizContent = urlQuizData || classData?.generatedContent;
 
   const [studentName, setStudentName] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
@@ -32,14 +58,14 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
   };
 
   const handleQuizSubmit = async (answers: { [key: number]: string }) => {
-    if (!classData?.generatedContent?.quiz || !studentName.trim()) return;
+    if (!quizContent?.quiz || !studentName.trim()) return;
 
     setIsSubmitting(true);
 
     try {
       // Calculate score
       let correctCount = 0;
-      classData.generatedContent?.quiz?.forEach((question, index) => {
+      quizContent?.quiz?.forEach((question: QuizQuestion, index: number) => {
         if (answers[index] === question.correctAnswer) {
           correctCount++;
         }
@@ -49,13 +75,13 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
         studentName: studentName.trim(),
         answers,
         score: correctCount,
-        totalQuestions: classData.generatedContent?.quiz?.length || 0,
+        totalQuestions: quizContent?.quiz?.length || 0,
         submittedAt: new Date(),
         classId: resolvedParams.id
       };
 
       addStudentResponse(resolvedParams.id, response);
-      addTerminalLog(`${studentName} submitted quiz with score ${correctCount}/${classData.generatedContent?.quiz?.length || 0}`, 'success');
+      addTerminalLog(`${studentName} submitted quiz with score ${correctCount}/${quizContent?.quiz?.length || 0}`, 'success');
 
     } catch (error) {
       addTerminalLog(`Failed to submit quiz: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
@@ -64,7 +90,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  if (!classData) {
+  if (!quizContent && !classData) {
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 flex items-center justify-center">
         <p className="text-center text-red-500">Error: Could not find quiz data for class ID: {resolvedParams.id}</p>
@@ -73,8 +99,8 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
   }
 
   // Check if any content is available
-  const hasContent = classData.generatedContent?.quiz || classData.generatedContent?.summary ||
-                    classData.generatedContent?.keyPoints || classData.generatedContent?.flashcards;
+  const hasContent = quizContent?.quiz || quizContent?.summary ||
+                    quizContent?.keyPoints || quizContent?.flashcards;
 
   if (!hasContent) {
     return (
@@ -110,7 +136,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
     return (
       <div className="min-h-screen bg-zinc-50 dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white dark:bg-zinc-800 rounded-lg shadow-lg p-6">
-          <h1 className="text-2xl font-bold text-center mb-6">{classData.name}</h1>
+          <h1 className="text-2xl font-bold text-center mb-6">{urlQuizData?.className || classData?.name || 'Quiz'}</h1>
           <p className="text-zinc-600 dark:text-zinc-400 text-center mb-6">
             Enter your name to start the quiz
           </p>
@@ -148,14 +174,14 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6 text-center">
-          <h1 className="text-2xl font-bold mb-2">{classData.name}</h1>
+          <h1 className="text-2xl font-bold mb-2">{urlQuizData?.className || classData?.name || 'Quiz'}</h1>
           <p className="text-zinc-600 dark:text-zinc-400">Welcome, {studentName}!</p>
         </div>
 
         {/* Tab Navigation */}
         {hasContent && (
           <div className="flex flex-wrap gap-2 mb-6 border-b border-zinc-200 dark:border-zinc-700">
-            {classData.generatedContent?.quiz && (
+            {quizContent?.quiz && (
               <button
                 onClick={() => setActiveTab('quiz')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -167,7 +193,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
                 Quiz
               </button>
             )}
-            {classData.generatedContent?.summary && (
+            {quizContent?.summary && (
               <button
                 onClick={() => setActiveTab('summary')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -179,7 +205,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
                 Summary
               </button>
             )}
-            {classData.generatedContent?.keyPoints && (
+            {quizContent?.keyPoints && (
               <button
                 onClick={() => setActiveTab('keyPoints')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -191,7 +217,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
                 Key Points
               </button>
             )}
-            {classData.generatedContent?.flashcards && (
+            {quizContent?.flashcards && (
               <button
                 onClick={() => setActiveTab('flashcards')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -208,29 +234,29 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
 
         {/* Content Display */}
         <div className="min-h-[600px]">
-          {activeTab === 'quiz' && classData.generatedContent?.quiz ? (
+          {activeTab === 'quiz' && quizContent?.quiz ? (
             <QuizDisplay
-              questions={classData.generatedContent?.quiz as QuizQuestion[] || []}
+              questions={quizContent?.quiz as QuizQuestion[] || []}
               mode="take"
               onQuizSubmit={handleQuizSubmit}
             />
-          ) : activeTab === 'summary' && classData.generatedContent?.summary ? (
+          ) : activeTab === 'summary' && quizContent?.summary ? (
             <SummaryDisplay
-              summary={classData.generatedContent?.summary || ''}
+              summary={quizContent?.summary || ''}
             />
-          ) : activeTab === 'keyPoints' && classData.generatedContent?.keyPoints ? (
+          ) : activeTab === 'keyPoints' && quizContent?.keyPoints ? (
             <KeyPointsDisplay
-              keyPoints={classData.generatedContent?.keyPoints || ''}
+              keyPoints={quizContent?.keyPoints || ''}
             />
-          ) : activeTab === 'flashcards' && classData.generatedContent?.flashcards ? (
+          ) : activeTab === 'flashcards' && quizContent?.flashcards ? (
             <FlashcardsDisplay
-              flashcards={classData.generatedContent?.flashcards || []}
+              flashcards={quizContent?.flashcards || []}
             />
           ) : !activeTab ? (
             <div className="flex items-center justify-center h-96 text-zinc-400">
               <div className="text-center">
                 <p className="mb-4">Select a tab above to view content</p>
-                {classData.generatedContent?.quiz && (
+                {quizContent?.quiz && (
                   <button
                     onClick={() => setActiveTab('quiz')}
                     className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

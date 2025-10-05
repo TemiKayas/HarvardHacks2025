@@ -280,7 +280,18 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const handleQRCode = async () => {
     try {
       const baseURL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      const lessonURL = `${baseURL}/lesson/${resolvedParams.id}`;
+
+      // Encode quiz data in URL as base64
+      const quizData = {
+        quiz: classData?.generatedContent?.quiz || [],
+        summary: classData?.generatedContent?.summary || '',
+        keyPoints: classData?.generatedContent?.keyPoints || '',
+        flashcards: classData?.generatedContent?.flashcards || [],
+        className: classData?.name || 'Quiz'
+      };
+
+      const encodedData = btoa(JSON.stringify(quizData));
+      const lessonURL = `${baseURL}/lesson/${resolvedParams.id}?data=${encodedData}`;
 
       await generateQRCode(resolvedParams.id, lessonURL);
       addTerminalLog('QR code generated successfully for student access', 'success');

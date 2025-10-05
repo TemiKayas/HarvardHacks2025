@@ -45,7 +45,7 @@ class QRGenerator {
     }
   }
 
-  static async generateQRCodeBuffer(url: string, options: QRCodeOptions = {}) {
+  static async generateQRCodeBuffer(url: string) {
     try {
       const bufferOptions = {
         type: 'png' as const,

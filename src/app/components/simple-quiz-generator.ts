@@ -1,6 +1,4 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import fs from "fs";
-import path from "path";
 
 export async function generateQuiz(
     numQuestions: number = 5,
