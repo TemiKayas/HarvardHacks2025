@@ -468,6 +468,8 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                 <QuizDisplay
                   questions={classData.generatedContent.quiz as any}
                   onClose={() => setActiveTab(null)}
+                  mode="edit"
+                  classId={resolvedParams.id}
                 />
               ) : activeTab === 'summary' && classData.generatedContent?.summary ? (
                 <SummaryDisplay
