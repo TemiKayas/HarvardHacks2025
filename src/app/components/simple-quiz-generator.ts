@@ -133,9 +133,13 @@ The development of AI has raised important ethical considerations, including con
 `;
 
         const prompt = `
-You must generate EXACTLY ${numQuestions} quiz questions based ONLY on the following text content.
+CRITICAL REQUIREMENT: You MUST generate EXACTLY ${numQuestions} quiz questions. No more, no less. The count MUST be ${numQuestions}.
+
+Generate quiz questions based ONLY on the following text content.
 Do not include any content not found in the provided text.
 Include both multiple choice and true/false questions (mix them evenly).
+
+COUNT VERIFICATION: Before responding, count your questions and ensure you have EXACTLY ${numQuestions} questions total.
 
 PRIORITY FOCUS: Look for and prioritize the following content types in this order:
 1. **In-class activities** - Any exercises, problems, or hands-on activities mentioned
@@ -162,6 +166,8 @@ There are TWO DISTINCT question types:
    - NO answer options needed for true/false questions
 
 IMPORTANT: If you find in-class activities, practice questions, or exercises in the content, prioritize creating quiz questions based on those. These are the most valuable for student learning and assessment.
+
+REMINDER: Generate EXACTLY ${numQuestions} questions - count them before submitting.
 
 Generate questions ONLY about the content below:
 ${contentToUse}

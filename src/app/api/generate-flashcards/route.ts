@@ -6,13 +6,13 @@ import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
-    const { extractedText, details = '' } = await request.json();
+    const { extractedText, details = '', numFlashcards = 10 } = await request.json();
 
     if (!extractedText) {
       return NextResponse.json({ error: 'No text content provided' }, { status: 400 });
     }
 
-    console.log(`Generating flashcards from ${extractedText.length} characters of text`);
+    console.log(`Generating ${numFlashcards} flashcards from ${extractedText.length} characters of text`);
 
     // Initialize Gemini
     const apiKeyPath = path.join(process.cwd(), 'src', 'key.api');
@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
       properties: {
         flashcards: {
           type: Type.ARRAY,
+          minItems: numFlashcards,
+          maxItems: numFlashcards,
           items: {
             type: Type.OBJECT,
             properties: {
@@ -45,15 +47,21 @@ export async function POST(request: NextRequest) {
     };
 
     const prompt = `
+CRITICAL REQUIREMENT: You MUST generate EXACTLY ${numFlashcards} flashcards. No more, no less. The count MUST be ${numFlashcards}.
+
 Generate educational flashcards from the following content.
 
-${details ? `Additional requirements: ${details}` : 'Create 10-15 flashcards covering the key concepts.'}
+${details ? `Additional requirements: ${details}` : ''}
+
+COUNT VERIFICATION: Before responding, count your flashcards and ensure you have EXACTLY ${numFlashcards} flashcards total.
 
 Content:
 ${extractedText}
 
 Create flashcards that help students learn and memorize important concepts, definitions, and facts.
 Each flashcard should have a clear question/term on the front and a concise answer/definition on the back.
+
+REMINDER: Generate EXACTLY ${numFlashcards} flashcards - count them before submitting.
 `;
 
     const response = await ai.models.generateContent({

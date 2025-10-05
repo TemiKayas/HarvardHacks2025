@@ -29,6 +29,12 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const [activeTab, setActiveTab] = useState<'quiz' | 'summary' | 'keyPoints' | 'flashcards' | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
+  const [showQuizOptions, setShowQuizOptions] = useState(false);
+  const [numQuestions, setNumQuestions] = useState(5);
+  const [showFlashcardOptions, setShowFlashcardOptions] = useState(false);
+  const [numFlashcards, setNumFlashcards] = useState(10);
+  const [showKeyPointsOptions, setShowKeyPointsOptions] = useState(false);
+  const [numKeyPoints, setNumKeyPoints] = useState(10);
 
   // Title editing logic
   const handleStartEditTitle = () => {
@@ -81,11 +87,24 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     // Handle different actions with switch statement
     switch (action) {
       case 'quiz':
-        await handleQuizGeneration(selectedFiles);
+        // Toggle quiz options display
+        setShowQuizOptions(!showQuizOptions);
+        setShowFlashcardOptions(false);
+        setShowKeyPointsOptions(false);
+        break;
+      case 'flashcards':
+        // Toggle flashcard options display
+        setShowFlashcardOptions(!showFlashcardOptions);
+        setShowQuizOptions(false);
+        setShowKeyPointsOptions(false);
+        break;
+      case 'keyPoints':
+        // Toggle key points options display
+        setShowKeyPointsOptions(!showKeyPointsOptions);
+        setShowQuizOptions(false);
+        setShowFlashcardOptions(false);
         break;
       case 'summary':
-      case 'keyPoints':
-      case 'flashcards':
         setCurrentAction(action);
         await generateContent(action, selectedFiles);
         break;
@@ -94,10 +113,36 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     }
   };
 
+  const startQuizGeneration = async () => {
+    if (!classData?.files.some(f => f.selected)) return;
+
+    const selectedFiles = classData.files.filter(f => f.selected);
+    setShowQuizOptions(false);
+    await handleQuizGeneration(selectedFiles);
+  };
+
+  const startFlashcardGeneration = async () => {
+    if (!classData?.files.some(f => f.selected)) return;
+
+    const selectedFiles = classData.files.filter(f => f.selected);
+    setShowFlashcardOptions(false);
+    setCurrentAction('flashcards');
+    await generateContent('flashcards', selectedFiles);
+  };
+
+  const startKeyPointsGeneration = async () => {
+    if (!classData?.files.some(f => f.selected)) return;
+
+    const selectedFiles = classData.files.filter(f => f.selected);
+    setShowKeyPointsOptions(false);
+    setCurrentAction('keyPoints');
+    await generateContent('keyPoints', selectedFiles);
+  };
+
   const handleQuizGeneration = async (selectedFiles: FileData[]) => {
     setIsGenerating(true);
     setCurrentAction('quiz');
-    addTerminalLog('Starting quiz generation...', 'info');
+    addTerminalLog(`Starting quiz generation (${numQuestions} questions)...`, 'info');
 
     try {
       // Get extracted text from selected PDFs
@@ -122,7 +167,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           extractedText: combinedText,
-          numQuestions: 5
+          numQuestions: numQuestions
         })
       });
 
@@ -158,7 +203,13 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
     const extractedText = selectedFiles.map(f => f.extractedText || '').join('\n\n');
 
-    addTerminalLog(`Starting ${action} generation...`, 'info');
+    if (action === 'flashcards') {
+      addTerminalLog(`Starting flashcard generation (${numFlashcards} flashcards)...`, 'info');
+    } else if (action === 'keyPoints') {
+      addTerminalLog(`Starting key points generation (${numKeyPoints} key points)...`, 'info');
+    } else {
+      addTerminalLog(`Starting ${action} generation...`, 'info');
+    }
 
     try {
       // Determine which API endpoint to call based on action
@@ -176,13 +227,25 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       addTerminalLog(`Processing ${selectedFiles.length} file(s)...`, 'info');
       addTerminalLog(`Sending request to ${action} API...`, 'info');
 
+      const requestBody: any = {
+        extractedText,
+        details: ''
+      };
+
+      // Add numFlashcards for flashcard generation
+      if (action === 'flashcards') {
+        requestBody.numFlashcards = numFlashcards;
+      }
+
+      // Add numKeyPoints for key points generation
+      if (action === 'keyPoints') {
+        requestBody.numKeyPoints = numKeyPoints;
+      }
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          extractedText,
-          details: '' // No additional details needed
-        })
+        body: JSON.stringify(requestBody)
       });
 
       const result = await response.json();
@@ -399,7 +462,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             <div className="flex-1 overflow-y-auto">
               {activeTab === 'quiz' && classData.generatedContent?.quiz ? (
                 <QuizDisplay
-                  questions={classData.generatedContent.quiz.filter(q => q.type === 'MCQ') as any}
+                  questions={classData.generatedContent.quiz as any}
                   onClose={() => setActiveTab(null)}
                 />
               ) : activeTab === 'summary' && classData.generatedContent?.summary ? (
@@ -457,6 +520,114 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   Generate Flashcards
                 </button>
               </div>
+
+              {/* Quiz Options Slider */}
+              {showQuizOptions && (
+                <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+                  <label className="block text-sm font-medium text-blue-800 dark:text-blue-200 mb-2">
+                    Number of Questions: {numQuestions}
+                  </label>
+                  <input
+                    type="range"
+                    min="1"
+                    max="15"
+                    value={numQuestions}
+                    onChange={(e) => setNumQuestions(parseInt(e.target.value))}
+                    className="w-full h-2 bg-blue-200 rounded-lg appearance-none cursor-pointer dark:bg-blue-700"
+                  />
+                  <div className="flex justify-between text-xs text-blue-600 dark:text-blue-300 mt-1">
+                    <span>1</span>
+                    <span>15</span>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={startQuizGeneration}
+                      disabled={isGenerating}
+                      className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      {isGenerating ? 'Generating...' : 'Generate Quiz'}
+                    </button>
+                    <button
+                      onClick={() => setShowQuizOptions(false)}
+                      className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Flashcard Options Slider */}
+              {showFlashcardOptions && (
+                <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
+                  <label className="block text-sm font-medium text-green-800 dark:text-green-200 mb-2">
+                    Number of Flashcards: {numFlashcards}
+                  </label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="15"
+                    value={numFlashcards}
+                    onChange={(e) => setNumFlashcards(parseInt(e.target.value))}
+                    className="w-full h-2 bg-green-200 rounded-lg appearance-none cursor-pointer dark:bg-green-700"
+                  />
+                  <div className="flex justify-between text-xs text-green-600 dark:text-green-300 mt-1">
+                    <span>5</span>
+                    <span>15</span>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={startFlashcardGeneration}
+                      disabled={isGenerating}
+                      className="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      {isGenerating ? 'Generating...' : 'Generate Flashcards'}
+                    </button>
+                    <button
+                      onClick={() => setShowFlashcardOptions(false)}
+                      className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Key Points Options Slider */}
+              {showKeyPointsOptions && (
+                <div className="mb-6 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-700 rounded-lg">
+                  <label className="block text-sm font-medium text-cyan-800 dark:text-cyan-200 mb-2">
+                    Number of Key Points: {numKeyPoints}
+                  </label>
+                  <input
+                    type="range"
+                    min="5"
+                    max="15"
+                    value={numKeyPoints}
+                    onChange={(e) => setNumKeyPoints(parseInt(e.target.value))}
+                    className="w-full h-2 bg-cyan-200 rounded-lg appearance-none cursor-pointer dark:bg-cyan-700"
+                  />
+                  <div className="flex justify-between text-xs text-cyan-600 dark:text-cyan-300 mt-1">
+                    <span>5</span>
+                    <span>15</span>
+                  </div>
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      onClick={startKeyPointsGeneration}
+                      disabled={isGenerating}
+                      className="flex-1 px-4 py-2 bg-cyan-600 text-white rounded hover:bg-cyan-700 disabled:opacity-50 text-sm font-medium"
+                    >
+                      {isGenerating ? 'Generating...' : 'Generate Key Points'}
+                    </button>
+                    <button
+                      onClick={() => setShowKeyPointsOptions(false)}
+                      className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 text-sm font-medium"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {/* Tools Section */}
               <h2 className="text-lg font-semibold mb-4">Tools</h2>

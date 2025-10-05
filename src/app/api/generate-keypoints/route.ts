@@ -6,13 +6,13 @@ import path from "path";
 
 export async function POST(request: NextRequest) {
   try {
-    const { extractedText, details = '' } = await request.json();
+    const { extractedText, details = '', numKeyPoints = 10 } = await request.json();
 
     if (!extractedText) {
       return NextResponse.json({ error: 'No text content provided' }, { status: 400 });
     }
 
-    console.log(`Generating key points from ${extractedText.length} characters of text`);
+    console.log(`Generating ${numKeyPoints} key points from ${extractedText.length} characters of text`);
 
     // Initialize Gemini
     const apiKeyPath = path.join(process.cwd(), 'src', 'key.api');
@@ -20,15 +20,21 @@ export async function POST(request: NextRequest) {
     const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
+CRITICAL REQUIREMENT: You MUST generate EXACTLY ${numKeyPoints} key points. No more, no less. The count MUST be ${numKeyPoints}.
+
 Please extract the key points from the following educational content.
 
 ${details ? `Additional requirements: ${details}` : ''}
+
+COUNT VERIFICATION: Before responding, count your key points and ensure you have EXACTLY ${numKeyPoints} key points total.
 
 Content to analyze:
 ${extractedText}
 
 Format the key points as a bulleted list with clear, concise statements.
 Focus on the most important concepts, definitions, and takeaways.
+
+REMINDER: Generate EXACTLY ${numKeyPoints} key points - count them before submitting.
 `;
 
     const response = await ai.models.generateContent({

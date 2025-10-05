@@ -1,7 +1,7 @@
 ================================================================================
 STUDYSYNC - COMPREHENSIVE PROJECT DOCUMENTATION
 ================================================================================
-Last Updated: 2025-10-04 (Night Update - Terminal Logging System)
+Last Updated: 2025-10-04 (Night Update 3 - Content Count Selectors)
 Project: HarvardHacks2025 - AI-Powered Educational Content Generator
 
 ================================================================================
@@ -194,6 +194,12 @@ HarvardHacks2025/
 │   │   ├── lib/
 │   │   │   └── store.ts                  # Zustand state management
 │   │   │
+│   │   ├── temp/                         # Temporary output files (gitignored)
+│   │   │   ├── quiz-output/              # Generated quiz HTML files
+│   │   │   ├── summary-output/           # Generated summary HTML files
+│   │   │   ├── keypoints-output/         # Generated key points HTML files
+│   │   │   └── flashcards-output/        # Generated flashcards HTML files
+│   │   │
 │   │   ├── page.tsx                      # Homepage (class list)
 │   │   ├── layout.tsx                    # Root layout
 │   │   └── globals.css                   # Global styles
@@ -205,9 +211,6 @@ HarvardHacks2025/
 │   ├── L16slides.pdf
 │   ├── ocaml_lecture_slides.pdf
 │   └── test-content.pdf
-│
-├── quiz-output/                          # Generated HTML quizzes (legacy)
-│   └── [various .html quiz files]
 │
 ├── public/                               # Static assets
 ├── package.json                          # Dependencies
@@ -441,41 +444,63 @@ Main Components:
 - ClassCard: Displays individual class with rename/delete menu
 - CreateClassModal: File upload modal with PDF processing
 
+NEW Features:
+- Class name input field during creation
+- ClassCard with three-dot menu for rename/delete
+- Click outside menu to close
+- Improved card hover effects
+
 Key Functions:
-- handleCreateClass() [line 110-185]:
+- handleCreateClass() [line 111-191]:
+  * Reads className input
   * Reads files with FileReader
   * Converts PDFs to base64
   * Calls /api/process-pdf
   * Stores extracted text in Zustand
+  * Creates class with custom name or "Untitled Lesson"
   * Navigates to class page
 
 File Upload Process:
-1. User drops/selects files
-2. For each PDF:
+1. User enters class name (optional)
+2. User drops/selects files
+3. For each PDF:
    a. Check size (warn if > 2MB)
    b. Convert to base64 via FileReader
    c. POST to /api/process-pdf
    d. Store extractedText in file object
-3. Create class with processed files
-4. Navigate to /class/[id]
+4. Create class with processed files and custom name
+5. Navigate to /class/[id]
 
 -------------------
 
 ClassPage (src/app/class/[id]/page.tsx)
 ---------------------------------------
 Layout: 3-column design
-- Left: File list with checkboxes
+- Left: File list with checkboxes (click anywhere on row to toggle)
 - Middle: Content preview with TAB NAVIGATION
 - Right: Action buttons, tools, & TERMINAL
 
-NEW: Tab Navigation System
+NEW Features:
+- Inline title editing (click pencil icon next to title)
+- Press Enter to save, Escape to cancel
+- Click-to-select files (entire row is clickable)
+- Simplified content generation (no detail prompt popup)
+- Terminal logging for title changes
+
+Tab Navigation System:
 - Tabs appear when content is generated
 - Click tabs to switch between Quiz/Summary/Key Points/Flashcards
 - Active tab highlighted with color-coded borders
 - Auto-switches to new tab when content generated
 
 Key Functions:
-- handleQuizGeneration() [line 82-137]:
+- handleStartEditTitle() / handleSaveTitle() [line 36-60]:
+  * Inline title editing with keyboard shortcuts
+  * Enter to save, Escape to cancel
+  * Logs rename to terminal with success indicator
+  * Updates store with updateClassName()
+
+- handleQuizGeneration() [line 99-162]:
   * Logs "Starting quiz generation..." to terminal
   * Gets selected files with extractedText
   * Combines text from multiple PDFs
@@ -486,11 +511,12 @@ Key Functions:
   * Sets activeTab to 'quiz'
   * Displays in QuizDisplay component
 
-- handleActionButton() [line 50-80]:
+- handleActionButton() [line 76-97]:
   * Switch statement for different actions (quiz, summary, keyPoints, flashcards)
-  * Routes to appropriate handler
+  * Directly calls generateContent() for summary/keyPoints/flashcards
+  * Routes to quiz handler separately
 
-- generateContent() [line 151-203]:
+- generateContent() [line 164-223]:
   * Logs "Starting [action] generation..." to terminal
   * Handles summary, keyPoints, flashcards generation
   * Logs file processing and API requests
@@ -498,6 +524,7 @@ Key Functions:
   * Logs success/error to terminal
   * Sets activeTab automatically
   * Updates store with generated content
+  * No detail prompt - generates immediately
 
 Action Flow:
 User clicks "Create Quiz" → handleActionButton('quiz') →
@@ -656,8 +683,9 @@ Actions:
 - addChatMessage() (hidden from UI but kept in store)
 - updateQuizQuestion()
 - deleteQuizQuestion()
-- addTerminalLog(message, type?) - NEW: Adds timestamped log entry
-- clearTerminalLogs() - NEW: Clears all terminal logs
+- updateClassName(classId, newName) - NEW: Updates class name
+- addTerminalLog(message, type?) - Adds timestamped log entry
+- clearTerminalLogs() - Clears all terminal logs
 
 Persistence:
 - Auto-saves to localStorage on every state change
@@ -1067,9 +1095,75 @@ SOLUTION:
 - Rebuild: npm run build
 
 ================================================================================
-RECENT CHANGES (2025-10-04 Night Update)
+RECENT CHANGES (2025-10-04 Night Update 3)
 ================================================================================
 
+CONTENT COUNT SELECTORS:
+- Quiz Questions Count Selector:
+  * Slider interface (min=1, max=15, default=5)
+  * Blue theme with inline display
+  * Shows "Number of Questions: N" with real-time updates
+  * Generate/Cancel buttons
+  * Terminal logs show "Starting quiz generation (N questions)..."
+  * Gemini prompt strengthened with CRITICAL REQUIREMENT for exact count
+  * Bug fix: Removed MCQ filter to display both MCQ and TF questions
+
+- Flashcard Count Selector:
+  * Slider interface (min=5, max=15, default=10)
+  * Green theme with inline display
+  * Shows "Number of Flashcards: N" with real-time updates
+  * Generate/Cancel buttons
+  * Terminal logs show "Starting flashcard generation (N flashcards)..."
+  * API route updated to accept numFlashcards parameter
+  * Gemini prompt strengthened for exact count generation
+
+- Key Points Count Selector:
+  * Slider interface (min=5, max=15, default=10)
+  * Cyan theme with inline display
+  * Shows "Number of Key Points: N" with real-time updates
+  * Generate/Cancel buttons
+  * Terminal logs show "Starting key points generation (N key points)..."
+  * API route updated to accept numKeyPoints parameter
+  * Gemini prompt strengthened for exact count generation
+
+SLIDER BEHAVIOR:
+- Mutual exclusion: Only one slider shows at a time
+- Clicking action button toggles slider visibility
+- Generate button starts generation and hides slider
+- Cancel button hides slider without generating
+- Sliders close other sliders when opened
+
+STATE MANAGEMENT:
+- Added states: showQuizOptions, numQuestions (default 5)
+- Added states: showFlashcardOptions, numFlashcards (default 10)
+- Added states: showKeyPointsOptions, numKeyPoints (default 10)
+- All count values passed through API requests
+- Terminal logging updated to show counts for all three types
+
+API UPDATES:
+- /api/generate-flashcards/route.ts: Accepts numFlashcards parameter
+- /api/generate-keypoints/route.ts: Accepts numKeyPoints parameter
+- Both routes include strengthened Gemini prompts with:
+  * CRITICAL REQUIREMENT header
+  * COUNT VERIFICATION instruction
+  * REMINDER footer
+  * minItems/maxItems in schemas (flashcards only)
+
+PREVIOUS UPDATE (2025-10-04 Night Update 2):
+UI/UX IMPROVEMENTS:
+- Inline class title editing (click pencil icon, Enter to save, Escape to cancel)
+- Class name input field during creation (optional, defaults to "Untitled Lesson")
+- Three-dot menu on class cards for rename/delete actions
+- Click-to-select files (entire row is clickable, not just checkbox)
+- Removed detail prompt popup (content generates immediately)
+- Terminal logs class rename operations
+
+FILE ORGANIZATION:
+- Moved all output directories to src/app/temp/
+- Updated all API routes to write to new locations
+- Updated .gitignore to exclude src/app/temp/
+
+PREVIOUS UPDATE (2025-10-04 Night Update):
 TERMINAL LOGGING SYSTEM IMPLEMENTATION:
 - Replaced chat interface with read-only terminal component
 - Terminal positioned in right column under action buttons
@@ -1079,34 +1173,13 @@ TERMINAL LOGGING SYSTEM IMPLEMENTATION:
 - Session-based logs (reset on page refresh)
 - Clear button for manual cleanup
 
-REMOVED:
-- Chat interface UI (removed from middle column)
-- sendChatMessage() function
-- chatMessage state variable
-- addChatMessage() calls from generation handlers (replaced with terminal logs)
-- Chat interface is now HIDDEN from UI (but chatHistory still exists in store)
-
-ADDED:
-- Terminal.tsx component
-- TerminalLog interface in store
-- addTerminalLog() and clearTerminalLogs() store actions
-- Terminal logging in all generation handlers:
-  * Quiz generation: 5 log entries per operation
-  * Summary/KeyPoints/Flashcards: 4-5 log entries per operation
-  * Detailed progress tracking (file count, API requests, success/error)
-
-LAYOUT CHANGES:
-- Middle column: "Preview & Chat" → "Preview"
-- Right column: Now includes Terminal under Tools section
-- Terminal takes remaining vertical space with flex-1
-
 ================================================================================
 END OF DOCUMENTATION
 ================================================================================
 
 This documentation is maintained as the project evolves. Last comprehensive
-update reflects the new terminal logging system replacing the chat interface,
-implemented on 2025-10-04 (Night Update).
+update includes content count selectors with slider interfaces for quizzes,
+flashcards, and key points, implemented on 2025-10-04 (Night Update 3).
 
 For questions or contributions, refer to the GitHub repository or contact
 the development team.
