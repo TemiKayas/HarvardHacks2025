@@ -7,6 +7,7 @@ import QuizDisplay from '../../components/quiz-display/QuizDisplay';
 import SummaryDisplay from '../../components/summary-display/SummaryDisplay';
 import KeyPointsDisplay from '../../components/keypoints-display/KeyPointsDisplay';
 import FlashcardsDisplay from '../../components/flashcards-display/FlashcardsDisplay';
+import Terminal from '../../components/terminal/Terminal';
 
 export default function ClassPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -16,16 +17,15 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const removeFileFromClass = useClassStore((state) => state.removeFileFromClass);
   const toggleFileSelection = useClassStore((state) => state.toggleFileSelection);
   const updateClassGeneratedContent = useClassStore((state) => state.updateClassGeneratedContent);
-  const addChatMessage = useClassStore((state) => state.addChatMessage);
   const updateQuizQuestion = useClassStore((state) => state.updateQuizQuestion);
   const deleteQuizQuestion = useClassStore((state) => state.deleteQuizQuestion);
+  const addTerminalLog = useClassStore((state) => state.addTerminalLog);
 
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
   const [showDetailPrompt, setShowDetailPrompt] = useState(false);
   const [detailPrompt, setDetailPrompt] = useState('');
   const [currentAction, setCurrentAction] = useState('');
-  const [chatMessage, setChatMessage] = useState('');
   const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'quiz' | 'summary' | 'keyPoints' | 'flashcards' | null>(null);
 
@@ -80,18 +80,24 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const handleQuizGeneration = async (selectedFiles: FileData[]) => {
     setIsGenerating(true);
     setCurrentAction('quiz');
+    addTerminalLog('Starting quiz generation...', 'info');
 
     try {
       // Get extracted text from selected PDFs
       const pdfFiles = selectedFiles.filter(f => f.type === 'application/pdf' && f.extractedText);
 
       if (pdfFiles.length === 0) {
+        addTerminalLog('No PDF files with extracted text found', 'error');
         alert('No PDF files with extracted text found. Please upload and process PDF files first.');
         return;
       }
 
+      addTerminalLog(`Processing ${pdfFiles.length} PDF file(s)...`, 'info');
+
       // Combine text from all selected PDFs
       const combinedText = pdfFiles.map(f => f.extractedText).join('\n\n');
+
+      addTerminalLog('Sending request to quiz generation API...', 'info');
 
       // Call quiz generation API
       const response = await fetch('/api/generate-quiz', {
@@ -109,6 +115,8 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
       const result = await response.json();
 
+      addTerminalLog(`Generated ${result.quiz.questions.length} quiz questions`, 'success');
+
       // Update store with generated quiz
       updateClassGeneratedContent(resolvedParams.id, {
         quiz: result.quiz.questions,
@@ -118,18 +126,11 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       // Set active tab to quiz
       setActiveTab('quiz');
 
-      // Add success message to chat
-      addChatMessage(resolvedParams.id, {
-        role: 'assistant',
-        content: `✅ Quiz generated successfully! Found ${result.analysis.contentTypes.join(', ')}. You can now view and take the quiz below.`
-      });
+      addTerminalLog('Quiz generation complete', 'success');
 
     } catch (error) {
       console.error('Error generating quiz:', error);
-      addChatMessage(resolvedParams.id, {
-        role: 'assistant',
-        content: 'Sorry, there was an error generating the quiz. Please try again.'
-      });
+      addTerminalLog('Quiz generation failed: ' + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     } finally {
       setIsGenerating(false);
     }
@@ -144,6 +145,8 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
     const selectedFiles = classData.files.filter(f => f.selected);
     const extractedText = selectedFiles.map(f => f.extractedText || '').join('\n\n');
 
+    addTerminalLog(`Starting ${currentAction} generation...`, 'info');
+
     try {
       // Determine which API endpoint to call based on action
       const endpointMap: { [key: string]: string } = {
@@ -156,6 +159,9 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       if (!endpoint) {
         throw new Error(`Unknown action: ${currentAction}`);
       }
+
+      addTerminalLog(`Processing ${selectedFiles.length} file(s)...`, 'info');
+      addTerminalLog(`Sending request to ${currentAction} API...`, 'info');
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -172,6 +178,8 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
         throw new Error(result.error || 'Failed to generate content');
       }
 
+      addTerminalLog(`${currentAction} generated successfully`, 'success');
+
       // Update store with generated content
       const generatedContent: GeneratedContent = {
         [currentAction]: result[currentAction] || result.summary || result.keyPoints || result.flashcards,
@@ -183,58 +191,14 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       // Set active tab based on generated content
       setActiveTab(currentAction as 'summary' | 'keyPoints' | 'flashcards');
 
-      // Add to chat history
-      addChatMessage(resolvedParams.id, {
-        role: 'assistant',
-        content: `Generated ${currentAction} successfully! You can now view the content below.`
-      });
+      addTerminalLog(`${currentAction} generation complete`, 'success');
 
     } catch (error) {
       console.error('Error generating content:', error);
-      addChatMessage(resolvedParams.id, {
-        role: 'assistant',
-        content: 'Sorry, there was an error generating the content. Please try again.'
-      });
+      addTerminalLog(`${currentAction} generation failed: ` + (error instanceof Error ? error.message : 'Unknown error'), 'error');
     } finally {
       setIsGenerating(false);
     }
-  };
-
-  const sendChatMessage = async () => {
-    if (!chatMessage.trim()) return;
-
-    addChatMessage(resolvedParams.id, {
-      role: 'user',
-      content: chatMessage
-    });
-
-    try {
-      const response = await fetch('/api/gemini', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'chat',
-          content: chatMessage,
-          details: `Current context: ${currentAction} generation for lesson "${classData?.name}"`
-        })
-      });
-
-      const { response: aiResponse } = await response.json();
-
-      addChatMessage(resolvedParams.id, {
-        role: 'assistant',
-        content: aiResponse
-      });
-
-    } catch (error) {
-      console.error('Error with chat:', error);
-      addChatMessage(resolvedParams.id, {
-        role: 'assistant',
-        content: 'Sorry, there was an error processing your message. Please try again.'
-      });
-    }
-
-    setChatMessage('');
   };
 
   // New handler functions
@@ -314,9 +278,9 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             </div>
           </div>
 
-          {/* Middle Column - Preview & Chat */}
+          {/* Middle Column - Preview */}
           <div className="w-1/2 border-r border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
-            <h2 className="text-lg font-semibold mb-4">Preview & Chat</h2>
+            <h2 className="text-lg font-semibold mb-4">Preview</h2>
 
             {/* Tab Navigation */}
             {(classData.generatedContent?.quiz || classData.generatedContent?.summary || classData.generatedContent?.keyPoints || classData.generatedContent?.flashcards) && (
@@ -373,7 +337,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             )}
 
             {/* Content Preview */}
-            <div className="flex-1 mb-4 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto">
               {activeTab === 'quiz' && classData.generatedContent?.quiz ? (
                 <QuizDisplay
                   questions={classData.generatedContent.quiz}
@@ -403,7 +367,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
             {/* Detail Prompt - Inline */}
             {showDetailPrompt && (
-              <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
+              <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg">
                 <p className="text-sm text-blue-800 dark:text-blue-200 mb-2">{detailPrompt}</p>
                 <div className="flex gap-2">
                   <button
@@ -422,49 +386,15 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                 </div>
               </div>
             )}
-
-            {/* Chat Interface - Bottom */}
-            <div className="h-48 bg-white dark:bg-zinc-800 rounded-lg border border-zinc-200 dark:border-zinc-700 flex flex-col">
-              <div className="flex-1 p-4 overflow-y-auto">
-                {classData.chatHistory?.map((message, index) => (
-                  <div key={index} className={`mb-3 ${message.role === 'user' ? 'text-right' : 'text-left'}`}>
-                    <div className={`inline-block p-2 rounded-lg text-sm max-w-xs ${message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
-                      }`}>
-                      {message.content}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="p-4 border-t border-zinc-200 dark:border-zinc-700">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && sendChatMessage()}
-                    placeholder="Ask Gemini to modify the content..."
-                    className="flex-1 p-2 border border-zinc-300 dark:border-zinc-600 rounded text-sm bg-white dark:bg-zinc-800"
-                  />
-                  <button
-                    onClick={sendChatMessage}
-                    className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
-                  >
-                    Send
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
 
-          {/* Right Column - Actions & Tools */}
+          {/* Right Column - Actions & Terminal */}
           <div className="w-1/4 p-6 flex flex-col h-full">
-            {/* Actions Section - Top Half */}
-            <div className="flex-1 mb-6">
+            {/* Actions Section */}
+            <div className="mb-6">
               <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-3 mb-6">
                 <button
                   onClick={() => handleActionButton('summary')}
                   className="p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
@@ -490,12 +420,10 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   Generate Flashcards
                 </button>
               </div>
-            </div>
 
-            {/* Tools Section - Bottom Half */}
-            <div className="flex-1">
+              {/* Tools Section */}
               <h2 className="text-lg font-semibold mb-4">Tools</h2>
-              <div className="space-y-3">
+              <div className="space-y-3 mb-6">
                 <button
                   onClick={() => handleQRCode()}
                   className="w-full p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
@@ -509,6 +437,12 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   Instructor Dashboard
                 </button>
               </div>
+            </div>
+
+            {/* Terminal Section */}
+            <div className="flex-1 flex flex-col">
+              <h2 className="text-lg font-semibold mb-4">Terminal</h2>
+              <Terminal />
             </div>
           </div>
         </div>

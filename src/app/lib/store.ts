@@ -44,9 +44,17 @@ export interface Class {
   chatHistory?: { role: 'user' | 'assistant'; content: string }[];
 }
 
+//terminal log entry
+export interface TerminalLog {
+  timestamp: Date;
+  message: string;
+  type?: 'info' | 'success' | 'error' | 'warning';
+}
+
 //store state
 interface ClassStore {
   classes: Class[];
+  terminalLogs: TerminalLog[];
   addClass: (newClass: Class) => void;
   getClassById: (id: string) => Class | undefined;
   deleteClass: (id: string) => void;
@@ -57,6 +65,8 @@ interface ClassStore {
   addChatMessage: (classId: string, message: { role: 'user' | 'assistant'; content: string }) => void;
   updateQuizQuestion: (classId: string, questionIndex: number, question: QuizQuestion) => void;
   deleteQuizQuestion: (classId: string, questionIndex: number) => void;
+  addTerminalLog: (message: string, type?: 'info' | 'success' | 'error' | 'warning') => void;
+  clearTerminalLogs: () => void;
 }
 
 //rename class func
@@ -76,6 +86,7 @@ export const useClassStore = create<ClassStore>()(
   persist(
     (set, get) => ({
       classes: [],
+      terminalLogs: [],
       addClass: (newClass) => {
         set((state) => ({
           classes: [...state.classes, newClass],
@@ -161,8 +172,8 @@ export const useClassStore = create<ClassStore>()(
         set((state) => ({
           classes: state.classes.map((cls) =>
             cls.id === classId && cls.generatedContent?.quiz
-              ? { 
-                  ...cls, 
+              ? {
+                  ...cls,
                   generatedContent: {
                     ...cls.generatedContent,
                     quiz: cls.generatedContent.quiz.filter((_, index) => index !== questionIndex)
@@ -171,6 +182,14 @@ export const useClassStore = create<ClassStore>()(
               : cls
           ),
         }));
+      },
+      addTerminalLog: (message: string, type?: 'info' | 'success' | 'error' | 'warning') => {
+        set((state) => ({
+          terminalLogs: [...state.terminalLogs, { timestamp: new Date(), message, type }],
+        }));
+      },
+      clearTerminalLogs: () => {
+        set({ terminalLogs: [] });
       },
     }),
     {
