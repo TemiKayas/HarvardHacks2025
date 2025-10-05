@@ -1,27 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-import { useClassStore } from '@/src/app/lib/store';
-
-interface MCQQuestion {
-  question: string;
-  type: 'MCQ';
-  answerA: string;
-  answerB: string;
-  answerC: string;
-  answerD: string;
-  correctAnswer: string;
-  explanation: string;
-}
-
-interface TFQuestion {
-  question: string;
-  type: 'TF';
-  correctAnswer: string;
-  explanation: string;
-}
-
-type QuizQuestion = MCQQuestion | TFQuestion;
+import { useClassStore, QuizQuestion } from '@/src/app/lib/store';
 
 interface QuizDisplayProps {
   questions: QuizQuestion[];
@@ -155,20 +135,19 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
       }
 
       if (question.type === 'MCQ') {
-        const mcq = question as MCQQuestion;
-        if (!mcq.answerA.trim()) {
+        if (!question.answerA?.trim()) {
           addTerminalLog(`Error: Question ${i + 1} is missing answer A`, 'error');
           return;
         }
-        if (!mcq.answerB.trim()) {
+        if (!question.answerB?.trim()) {
           addTerminalLog(`Error: Question ${i + 1} is missing answer B`, 'error');
           return;
         }
-        if (!mcq.answerC.trim()) {
+        if (!question.answerC?.trim()) {
           addTerminalLog(`Error: Question ${i + 1} is missing answer C`, 'error');
           return;
         }
-        if (!mcq.answerD.trim()) {
+        if (!question.answerD?.trim()) {
           addTerminalLog(`Error: Question ${i + 1} is missing answer D`, 'error');
           return;
         }
@@ -260,8 +239,8 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
               {question.type === 'MCQ' && (
                 <div className="space-y-3 ml-8">
                   {['A', 'B', 'C', 'D'].map((letter) => {
-                    const answerKey = `answer${letter}` as keyof MCQQuestion;
-                    const answerText = (question as MCQQuestion)[answerKey] as string;
+                    const answerKey = `answer${letter}` as keyof QuizQuestion;
+                    const answerText = question[answerKey] as string;
                     const isCorrect = question.correctAnswer === letter;
 
                     return (
@@ -421,7 +400,7 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
             {question.type === 'MCQ' ? (
               <div className="space-y-3 ml-8">
                 {['A', 'B', 'C', 'D'].map((letter) => {
-                  const answerKey = `answer${letter}` as keyof MCQQuestion;
+                  const answerKey = `answer${letter}` as keyof QuizQuestion;
                   const answerText = question[answerKey] as string;
                   const isSelected = userAnswers[index] === letter;
                   const isCorrect = question.correctAnswer === letter;

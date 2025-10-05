@@ -26,12 +26,20 @@ export default function PDFQuiz({ files, onQuizGenerated }: PDFQuizProps) {
         try {
             const pdfFile = files[selectedFileIndex];
 
-            // The file.content should be base64 string
-            if (!pdfFile.content) {
-                alert('PDF content not available. The file needs to be uploaded with base64 encoding.');
-                setIsGenerating(false);
-                return;
-            }
+            setProgress('Reading PDF file...');
+
+            // Convert File to base64
+            const base64Content = await new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result as string;
+                    // Remove the data: prefix (data:application/pdf;base64,)
+                    const base64 = result.split(',')[1];
+                    resolve(base64);
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsDataURL(pdfFile);
+            });
 
             setProgress('Generating quiz...');
 
@@ -42,7 +50,7 @@ export default function PDFQuiz({ files, onQuizGenerated }: PDFQuizProps) {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    pdfBase64: pdfFile.content, // Send base64 directly
+                    pdfBase64: base64Content, // Send base64 directly
                     numQuestions: numQuestions
                 }),
             });

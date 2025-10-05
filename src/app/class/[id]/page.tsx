@@ -23,7 +23,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentAction, setCurrentAction] = useState('');
+  const [, setCurrentAction] = useState(''); // Used only for setting state
   const [activeTab, setActiveTab] = useState<'quiz' | 'summary' | 'keyPoints' | 'flashcards' | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
@@ -232,12 +232,12 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
       // Add numFlashcards for flashcard generation
       if (action === 'flashcards') {
-        requestBody.numFlashcards = numFlashcards;
+        requestBody.numFlashcards = numFlashcards.toString();
       }
 
       // Add numKeyPoints for key points generation
       if (action === 'keyPoints') {
-        requestBody.numKeyPoints = numKeyPoints;
+        requestBody.numKeyPoints = numKeyPoints.toString();
       }
 
       const response = await fetch(endpoint, {
@@ -669,32 +669,33 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                 <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
                   <div className="text-center">
                     <img
-                      src={classData.generatedContent.qrCode.dataURL}
+                      src={classData.generatedContent!.qrCode!.dataURL}
                       alt="Lesson QR Code"
                       className="w-24 h-24 sm:w-28 sm:h-28 mx-auto cursor-pointer mb-3"
                       onClick={() => {
                         // Copy QR code image to clipboard
-                        fetch(classData.generatedContent.qrCode.dataURL)
+                        fetch(classData.generatedContent!.qrCode!.dataURL)
                           .then(res => res.blob())
                           .then(blob => {
                             const item = new ClipboardItem({ 'image/png': blob });
                             navigator.clipboard.write([item]);
                             addTerminalLog('QR code image copied to clipboard', 'success');
                           })
-                          .catch(err => addTerminalLog('Failed to copy QR code image', 'error'));
+                          .catch(() => addTerminalLog('Failed to copy QR code image', 'error'));
                       }}
                       title="Click to copy QR code image"
                     />
                     <p className="text-xs text-green-600 dark:text-green-300 mb-3 break-all">
-                      {classData.generatedContent.qrCode.url}
+                      {classData.generatedContent!.qrCode!.url || 'No URL available'}
                     </p>
                     <div className="flex gap-2 justify-center">
                       <button
                         onClick={async () => {
                           try {
-                            await navigator.clipboard.writeText(classData.generatedContent.qrCode.url);
+                            const url = classData.generatedContent!.qrCode!.url || '';
+                            await navigator.clipboard.writeText(url);
                             addTerminalLog('URL copied to clipboard', 'success');
-                          } catch (err) {
+                          } catch {
                             addTerminalLog('Failed to copy URL', 'error');
                           }
                         }}
