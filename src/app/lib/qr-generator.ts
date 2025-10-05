@@ -1,7 +1,7 @@
 import QRCode from 'qrcode';
 
 interface QRCodeOptions {
-  type?: string;
+  type?: 'image/png' | 'image/jpeg' | 'image/webp';
   quality?: number;
   margin?: number;
   color?: {
@@ -15,7 +15,7 @@ class QRGenerator {
   static async generateQRCode(url: string, options: QRCodeOptions = {}) {
     try {
       const defaultOptions = {
-        type: 'image/png',
+        type: 'image/png' as const,
         quality: 0.92,
         margin: 1,
         color: {
@@ -47,20 +47,19 @@ class QRGenerator {
 
   static async generateQRCodeBuffer(url: string, options: QRCodeOptions = {}) {
     try {
-      const defaultOptions = {
-        type: 'image/png',
+      const bufferOptions = {
+        type: 'png' as const,
         quality: 0.92,
         margin: 1,
         color: {
           dark: '#000000',
           light: '#FFFFFF'
         },
-        width: 256,
-        ...options
+        width: 256
       };
 
       // Generate QR code as buffer
-      const qrCodeBuffer = await QRCode.toBuffer(url, defaultOptions);
+      const qrCodeBuffer = await QRCode.toBuffer(url, bufferOptions);
 
       return {
         success: true,

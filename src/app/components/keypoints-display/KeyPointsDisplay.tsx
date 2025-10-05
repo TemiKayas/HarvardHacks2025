@@ -7,12 +7,18 @@ interface KeyPointsDisplayProps {
   onClose?: () => void;
 }
 
+interface Section {
+  title: string;
+  points: string[];
+}
+
 export default function KeyPointsDisplay({ keyPoints, onClose }: KeyPointsDisplayProps) {
   // Parse key points into sections (assuming bullet points or numbered lists)
-  const parseKeyPoints = (text: string) => {
+  const parseKeyPoints = (text: string): Section[] => {
     const lines = text.split('\n').filter(line => line.trim());
-    const sections: { title: string; points: string[] }[] = [];
-    let currentSection: { title: string; points: string[] } | null = null;
+
+    const sections: Section[] = [];
+    let currentSection: Section | null = null;
 
     lines.forEach(line => {
       const trimmed = line.trim();
@@ -39,8 +45,11 @@ export default function KeyPointsDisplay({ keyPoints, onClose }: KeyPointsDispla
       }
     });
 
-    if (currentSection && currentSection.points.length > 0) {
-      sections.push(currentSection);
+    if (currentSection) {
+      const section = currentSection as Section;
+      if (section.points.length > 0) {
+        sections.push(section);
+      }
     }
 
     // If no sections were created, treat entire text as one section

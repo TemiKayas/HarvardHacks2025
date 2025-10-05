@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { useClassStore } from '../../lib/store';
+import { useClassStore, QuizQuestion } from '../../lib/store';
 import { use } from 'react';
 import QuizDisplay from '../../components/quiz-display/QuizDisplay';
 import SummaryDisplay from '../../components/summary-display/SummaryDisplay';
@@ -39,7 +39,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
     try {
       // Calculate score
       let correctCount = 0;
-      classData.generatedContent.quiz.forEach((question, index) => {
+      classData.generatedContent?.quiz?.forEach((question, index) => {
         if (answers[index] === question.correctAnswer) {
           correctCount++;
         }
@@ -49,13 +49,13 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
         studentName: studentName.trim(),
         answers,
         score: correctCount,
-        totalQuestions: classData.generatedContent.quiz.length,
+        totalQuestions: classData.generatedContent?.quiz?.length || 0,
         submittedAt: new Date(),
         classId: resolvedParams.id
       };
 
       addStudentResponse(resolvedParams.id, response);
-      addTerminalLog(`${studentName} submitted quiz with score ${correctCount}/${classData.generatedContent.quiz.length}`, 'success');
+      addTerminalLog(`${studentName} submitted quiz with score ${correctCount}/${classData.generatedContent?.quiz?.length || 0}`, 'success');
 
     } catch (error) {
       addTerminalLog(`Failed to submit quiz: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
@@ -155,7 +155,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
         {/* Tab Navigation */}
         {hasContent && (
           <div className="flex flex-wrap gap-2 mb-6 border-b border-zinc-200 dark:border-zinc-700">
-            {classData.generatedContent.quiz && (
+            {classData.generatedContent?.quiz && (
               <button
                 onClick={() => setActiveTab('quiz')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -167,7 +167,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
                 Quiz
               </button>
             )}
-            {classData.generatedContent.summary && (
+            {classData.generatedContent?.summary && (
               <button
                 onClick={() => setActiveTab('summary')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -179,7 +179,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
                 Summary
               </button>
             )}
-            {classData.generatedContent.keyPoints && (
+            {classData.generatedContent?.keyPoints && (
               <button
                 onClick={() => setActiveTab('keyPoints')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -191,7 +191,7 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
                 Key Points
               </button>
             )}
-            {classData.generatedContent.flashcards && (
+            {classData.generatedContent?.flashcards && (
               <button
                 onClick={() => setActiveTab('flashcards')}
                 className={`px-4 py-2 font-medium transition-colors text-sm ${
@@ -210,21 +210,21 @@ export default function StudentQuizPage({ params }: { params: Promise<{ id: stri
         <div className="min-h-[600px]">
           {activeTab === 'quiz' && classData.generatedContent?.quiz ? (
             <QuizDisplay
-              questions={classData.generatedContent.quiz as QuizQuestion[]}
+              questions={classData.generatedContent?.quiz as QuizQuestion[] || []}
               mode="take"
               onQuizSubmit={handleQuizSubmit}
             />
           ) : activeTab === 'summary' && classData.generatedContent?.summary ? (
             <SummaryDisplay
-              summary={classData.generatedContent.summary}
+              summary={classData.generatedContent?.summary || ''}
             />
           ) : activeTab === 'keyPoints' && classData.generatedContent?.keyPoints ? (
             <KeyPointsDisplay
-              keyPoints={classData.generatedContent.keyPoints}
+              keyPoints={classData.generatedContent?.keyPoints || ''}
             />
           ) : activeTab === 'flashcards' && classData.generatedContent?.flashcards ? (
             <FlashcardsDisplay
-              flashcards={classData.generatedContent.flashcards}
+              flashcards={classData.generatedContent?.flashcards || []}
             />
           ) : !activeTab ? (
             <div className="flex items-center justify-center h-96 text-zinc-400">

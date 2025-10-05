@@ -73,7 +73,7 @@ REMINDER: Generate EXACTLY ${numFlashcards} flashcards - count them before submi
       },
     });
 
-    const flashcards = JSON.parse(response.text);
+    const flashcards = JSON.parse(response.text || '{}');
 
     // Generate HTML and save to disk
     const htmlContent = flashcardsToHTML(flashcards.flashcards);
