@@ -4,7 +4,7 @@ import { useCallback, useState, useEffect, MouseEvent as ReactMouseEvent, useRef
 import { useDropzone, FileWithPath } from 'react-dropzone';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useClassStore, Class, FileData, renameClass } from './lib/store';
+import { useClassStore, Class, renameClass } from './lib/store';
 
 // === Component Definitions ===
 

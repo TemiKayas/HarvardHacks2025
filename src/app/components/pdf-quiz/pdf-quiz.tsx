@@ -4,8 +4,8 @@
 import { useState } from 'react';
 
 interface PDFQuizProps {
-    files: any[];
-    onQuizGenerated?: (quizPath: string, analysis: any) => void;
+    files: File[];
+    onQuizGenerated?: (quizPath: string, analysis: Record<string, unknown>) => void;
 }
 
 export default function PDFQuiz({ files, onQuizGenerated }: PDFQuizProps) {

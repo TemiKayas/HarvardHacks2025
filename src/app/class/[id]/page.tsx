@@ -1,6 +1,6 @@
 "use client";
 
-import { useClassStore, FileData, QuizQuestion, GeneratedContent } from '../../lib/store';
+import { useClassStore, GeneratedContent } from '../../lib/store';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import QuizDisplay from '../../components/quiz-display/QuizDisplay';
@@ -17,15 +17,11 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
   const removeFileFromClass = useClassStore((state) => state.removeFileFromClass);
   const toggleFileSelection = useClassStore((state) => state.toggleFileSelection);
   const updateClassGeneratedContent = useClassStore((state) => state.updateClassGeneratedContent);
-  const updateQuizQuestion = useClassStore((state) => state.updateQuizQuestion);
-  const deleteQuizQuestion = useClassStore((state) => state.deleteQuizQuestion);
   const updateClassName = useClassStore((state) => state.updateClassName);
   const addTerminalLog = useClassStore((state) => state.addTerminalLog);
 
   // UI State
   const [isGenerating, setIsGenerating] = useState(false);
-  const [currentAction, setCurrentAction] = useState('');
-  const [editingQuestion, setEditingQuestion] = useState<number | null>(null);
   const [activeTab, setActiveTab] = useState<'quiz' | 'summary' | 'keyPoints' | 'flashcards' | null>(null);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [editingTitle, setEditingTitle] = useState('');
@@ -227,7 +223,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
       addTerminalLog(`Processing ${selectedFiles.length} file(s)...`, 'info');
       addTerminalLog(`Sending request to ${action} API...`, 'info');
 
-      const requestBody: any = {
+      const requestBody: Record<string, string> = {
         extractedText,
         details: ''
       };
@@ -466,7 +462,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             <div className="flex-1 overflow-y-auto">
               {activeTab === 'quiz' && classData.generatedContent?.quiz ? (
                 <QuizDisplay
-                  questions={classData.generatedContent.quiz as any}
+                  questions={classData.generatedContent.quiz || []}
                   onClose={() => setActiveTab(null)}
                   mode="edit"
                   classId={resolvedParams.id}
@@ -648,6 +644,14 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                 >
                   Instructor Dashboard
                 </button>
+                {classData.generatedContent?.studentResponses && classData.generatedContent.studentResponses.length > 0 && (
+                  <Link
+                    href={`/admin/${resolvedParams.id}`}
+                    className="block w-full p-4 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-center font-medium transition-colors"
+                  >
+                    View Quiz Results ({classData.generatedContent.studentResponses.length} responses)
+                  </Link>
+                )}
               </div>
           </div>
         </div>

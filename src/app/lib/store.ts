@@ -27,12 +27,30 @@ export interface Flashcard {
   back: string;
 }
 
+export interface StudentResponse {
+  studentName: string;
+  answers: { [questionIndex: number]: string };
+  score: number;
+  totalQuestions: number;
+  submittedAt: Date;
+  classId: string;
+}
+
+export interface QRCodeData {
+  dataURL: string;
+  url?: string;
+  generatedAt: Date;
+  classId: string;
+}
+
 export interface GeneratedContent {
   quiz?: QuizQuestion[];
   summary?: string;
   keyPoints?: string;
   flashcards?: Flashcard[];
   lastGenerated?: string; // Track what was last generated
+  qrCode?: QRCodeData; // QR code for student access
+  studentResponses?: StudentResponse[]; // Student quiz responses
 }
 
 //class shape
@@ -69,6 +87,9 @@ interface ClassStore {
   updateClassName: (classId: string, newName: string) => void;
   addTerminalLog: (message: string, type?: 'info' | 'success' | 'error' | 'warning') => void;
   clearTerminalLogs: () => void;
+  generateQRCode: (classId: string, url: string) => Promise<void>;
+  addStudentResponse: (classId: string, response: StudentResponse) => void;
+  clearStudentResponses: (classId: string) => void;
 }
 
 //rename class func
@@ -214,6 +235,72 @@ export const useClassStore = create<ClassStore>()(
       },
       clearTerminalLogs: () => {
         set({ terminalLogs: [] });
+      },
+      generateQRCode: async (classId: string, url: string) => {
+        try {
+          // Import QRGenerator dynamically to avoid SSR issues
+          const QRGenerator = (await import('./qr-generator')).default;
+          const qrResult = await QRGenerator.generateQRCode(url);
+
+          if (qrResult.success) {
+            set((state) => ({
+              classes: state.classes.map((cls) =>
+                cls.id === classId
+                  ? {
+                      ...cls,
+                      generatedContent: {
+                        ...cls.generatedContent,
+                        qrCode: {
+                          dataURL: qrResult.dataURL,
+                          url: qrResult.url,
+                          generatedAt: new Date(),
+                          classId: classId
+                        }
+                      }
+                    }
+                  : cls
+              ),
+            }));
+          } else {
+            throw new Error(qrResult.error);
+          }
+        } catch (error) {
+          console.error('Failed to generate QR code:', error);
+          throw error;
+        }
+      },
+      addStudentResponse: (classId: string, response: StudentResponse) => {
+        set((state) => ({
+          classes: state.classes.map((cls) =>
+            cls.id === classId
+              ? {
+                  ...cls,
+                  generatedContent: {
+                    ...cls.generatedContent,
+                    studentResponses: [
+                      ...(cls.generatedContent?.studentResponses || []),
+                      response
+                    ]
+                  }
+                }
+              : cls
+          ),
+        }));
+      },
+      clearStudentResponses: (classId: string) => {
+        set((state) => ({
+          classes: state.classes.map((cls) =>
+            cls.id === classId
+              ? {
+                  ...cls,
+                  generatedContent: {
+                    ...cls.generatedContent,
+                    studentResponses: []
+                  }
+                }
+              : cls
+          ),
+        }));
       },
     }),
     {

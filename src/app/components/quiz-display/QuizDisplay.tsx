@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useClassStore } from '@/src/app/lib/store';
+import QRGenerator from '@/src/app/lib/qr-generator';
 
 interface MCQQuestion {
   question: string;
@@ -30,9 +31,10 @@ interface QuizDisplayProps {
   classId?: string;
   onSave?: () => void;
   onCancel?: () => void;
+  onQuizSubmit?: (answers: { [key: number]: string }) => void;
 }
 
-export default function QuizDisplay({ questions, onClose, mode = 'take', classId, onSave, onCancel }: QuizDisplayProps) {
+export default function QuizDisplay({ questions, onClose, mode = 'take', classId, onSave, onQuizSubmit }: QuizDisplayProps) {
   const [userAnswers, setUserAnswers] = useState<{ [key: number]: string }>({});
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
@@ -40,7 +42,10 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
   // Edit mode state
   const [editedQuestions, setEditedQuestions] = useState<QuizQuestion[]>(questions);
   const [undoHistory, setUndoHistory] = useState<QuizQuestion[][]>([]);
-  const { updateQuizQuestion, deleteQuizQuestion, addQuizQuestion, addTerminalLog } = useClassStore();
+  const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [showQRCode, setShowQRCode] = useState(false);
+  const { updateQuizQuestion, deleteQuizQuestion, addQuizQuestion, addTerminalLog, generateQRCode } = useClassStore();
+  const classData = useClassStore((state) => state.classes.find(c => c.id === classId));
 
   // Sync editedQuestions when questions prop changes
   useEffect(() => {
@@ -62,6 +67,11 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
     });
     setScore(correctCount);
     setShowResults(true);
+
+    // Call external submit handler if provided
+    if (onQuizSubmit) {
+      onQuizSubmit(userAnswers);
+    }
   };
 
   const getScoreMessage = () => {
@@ -131,7 +141,7 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
     setEditedQuestions(previousState);
   };
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (!classId) return;
 
     // Validate all fields are filled
@@ -186,6 +196,22 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
     }
 
     addTerminalLog('Quiz saved successfully', 'success');
+
+    // Generate QR Code
+    setIsGeneratingQR(true);
+    try {
+      const baseURL = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+      const lessonURL = QRGenerator.generateQuizURL(baseURL, classId);
+
+      await generateQRCode(classId, lessonURL);
+      addTerminalLog('QR code generated successfully for student access', 'success');
+      setShowQRCode(true);
+    } catch (error) {
+      addTerminalLog(`Failed to generate QR code: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
+    } finally {
+      setIsGeneratingQR(false);
+    }
+
     setUndoHistory([]); // Clear undo history after successful save
     onSave?.();
   };
@@ -349,14 +375,47 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
           </div>
         </div>
 
+        {/* QR Code Display */}
+        {showQRCode && (
+          <div className="p-6 bg-green-50 dark:bg-green-900/20 border-t border-green-200 dark:border-green-800">
+            <div className="text-center">
+              <h3 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-4">
+                QR Code Generated Successfully!
+              </h3>
+              <p className="text-sm text-green-600 dark:text-green-300 mb-4">
+                Students can scan this QR code to take the quiz
+              </p>
+              <div className="inline-block p-4 bg-white dark:bg-zinc-800 rounded-lg border-2 border-green-200 dark:border-green-700">
+                <img
+                  src={classData?.generatedContent?.qrCode?.dataURL}
+                  alt="Quiz QR Code"
+                  className="w-48 h-48 mx-auto"
+                />
+              </div>
+              <div className="mt-4">
+                <p className="text-xs text-green-600 dark:text-green-300 break-all">
+                  URL: {classData?.generatedContent?.qrCode?.url}
+                </p>
+              </div>
+              <button
+                onClick={() => setShowQRCode(false)}
+                className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                Close QR Code
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Footer with Save/Undo */}
         <div className="p-6 bg-zinc-50 dark:bg-zinc-800 border-t border-zinc-200 dark:border-zinc-700">
           <div className="flex gap-4">
             <button
               onClick={handleSaveChanges}
-              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-4 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 transition-all text-lg"
+              disabled={isGeneratingQR}
+              className="flex-1 bg-gradient-to-r from-blue-500 to-cyan-500 text-white font-bold py-4 px-6 rounded-lg hover:from-blue-600 hover:to-cyan-600 disabled:from-zinc-400 disabled:to-zinc-400 disabled:cursor-not-allowed transition-all text-lg"
             >
-              Save Changes
+              {isGeneratingQR ? 'Generating QR Code...' : 'Save Changes and Generate QR Code'}
             </button>
             <button
               onClick={handleUndo}
@@ -395,17 +454,17 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
       </div>
 
       {/* Questions */}
-      <div className="p-6 max-h-[600px] overflow-y-auto">
+      <div className="p-4 sm:p-6 max-h-[600px] overflow-y-auto">
         {questions.map((question, index) => (
           <div
             key={index}
-            className="mb-6 p-6 border-2 border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-blue-400 dark:hover:border-blue-600 transition-colors"
+            className="mb-6 p-4 sm:p-6 border-2 border-zinc-200 dark:border-zinc-700 rounded-lg hover:border-blue-400 dark:hover:border-blue-600 transition-colors"
           >
             <div className="flex items-start mb-4">
-              <span className="text-blue-600 dark:text-blue-400 font-bold text-lg mr-3">
+              <span className="text-blue-600 dark:text-blue-400 font-bold text-base sm:text-lg mr-2 sm:mr-3 flex-shrink-0">
                 Q{index + 1}.
               </span>
-              <p className="text-lg text-zinc-900 dark:text-zinc-100 flex-1">
+              <p className="text-base sm:text-lg text-zinc-900 dark:text-zinc-100 flex-1 leading-relaxed">
                 {question.question}
               </p>
             </div>
@@ -424,7 +483,7 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
                     <div
                       key={letter}
                       onClick={() => handleAnswerSelect(index, letter)}
-                      className={`flex items-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      className={`flex items-start p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all min-h-[60px] ${
                         showCorrect
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                           : showIncorrect
@@ -439,25 +498,25 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
                         name={`question-${index}`}
                         checked={isSelected}
                         onChange={() => handleAnswerSelect(index, letter)}
-                        className="mr-3 h-5 w-5"
+                        className="mr-3 h-5 w-5 mt-0.5 flex-shrink-0"
                         disabled={showResults}
                       />
-                      <label className="flex-1 cursor-pointer">
-                        <strong className="mr-2">{letter}.</strong>
-                        {answerText}
+                      <label className="flex-1 cursor-pointer leading-relaxed">
+                        <strong className="mr-2 text-base">{letter}.</strong>
+                        <span className="text-sm sm:text-base">{answerText}</span>
                       </label>
                       {showCorrect && (
-                        <span className="text-green-600 font-bold">✓</span>
+                        <span className="text-green-600 font-bold ml-2 flex-shrink-0">✓</span>
                       )}
                       {showIncorrect && (
-                        <span className="text-red-600 font-bold">✗</span>
+                        <span className="text-red-600 font-bold ml-2 flex-shrink-0">✗</span>
                       )}
                     </div>
                   );
                 })}
               </div>
             ) : (
-              <div className="flex gap-4 ml-8">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 ml-8">
                 {['true', 'false'].map((value) => {
                   const isSelected = userAnswers[index] === value;
                   const isCorrect = question.correctAnswer === value;
@@ -468,7 +527,7 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
                     <div
                       key={value}
                       onClick={() => handleAnswerSelect(index, value)}
-                      className={`flex-1 flex items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      className={`flex-1 flex items-center justify-center p-3 sm:p-4 border-2 rounded-lg cursor-pointer transition-all min-h-[60px] ${
                         showCorrect
                           ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                           : showIncorrect
@@ -483,17 +542,17 @@ export default function QuizDisplay({ questions, onClose, mode = 'take', classId
                         name={`question-${index}`}
                         checked={isSelected}
                         onChange={() => handleAnswerSelect(index, value)}
-                        className="mr-2 h-5 w-5"
+                        className="mr-2 h-5 w-5 flex-shrink-0"
                         disabled={showResults}
                       />
-                      <label className="cursor-pointer font-medium capitalize">
+                      <label className="cursor-pointer font-medium capitalize text-center flex-1">
                         {value}
                       </label>
                       {showCorrect && (
-                        <span className="ml-2 text-green-600 font-bold">✓</span>
+                        <span className="ml-2 text-green-600 font-bold flex-shrink-0">✓</span>
                       )}
                       {showIncorrect && (
-                        <span className="ml-2 text-red-600 font-bold">✗</span>
+                        <span className="ml-2 text-red-600 font-bold flex-shrink-0">✗</span>
                       )}
                     </div>
                   );
