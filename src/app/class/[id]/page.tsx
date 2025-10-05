@@ -3,6 +3,7 @@
 import { useClassStore, GeneratedContent, FileData } from '../../lib/store';
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import QuizDisplay from '../../components/quiz-display/QuizDisplay';
 import SummaryDisplay from '../../components/summary-display/SummaryDisplay';
 import KeyPointsDisplay from '../../components/keypoints-display/KeyPointsDisplay';
@@ -668,9 +669,11 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
               {classData.generatedContent?.qrCode && (
                 <div className="mt-4 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg">
                   <div className="text-center">
-                    <img
+                    <Image
                       src={classData.generatedContent!.qrCode!.dataURL}
                       alt="Lesson QR Code"
+                      width={112}
+                      height={112}
                       className="w-24 h-24 sm:w-28 sm:h-28 mx-auto cursor-pointer mb-3"
                       onClick={() => {
                         // Copy QR code image to clipboard
@@ -684,6 +687,7 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                           .catch(() => addTerminalLog('Failed to copy QR code image', 'error'));
                       }}
                       title="Click to copy QR code image"
+                      unoptimized
                     />
                     <p className="text-xs text-green-600 dark:text-green-300 mb-3 break-all">
                       {classData.generatedContent!.qrCode!.url || 'No URL available'}
