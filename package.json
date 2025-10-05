@@ -10,7 +10,8 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "test": "node ../src/app/components/index.js"
+    "test": "node ../src/app/components/index.js",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -19,7 +20,7 @@
     "@mui/material": "^7.3.4",
     "lucide-react": "^0.544.0",
     "next": "15.5.4",
-    "pdf-parse": "^2.1.7",
+    "pdf-parse": "^1.1.1",
     "qrcode": "^1.5.4",
     "react": "19.1.0",
     "react-dom": "19.1.0",
@@ -35,6 +36,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "patch-package": "^8.0.1",
     "tailwindcss": "^4",
     "typescript": "^5"
   },

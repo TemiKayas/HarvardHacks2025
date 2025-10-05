@@ -10,7 +10,7 @@ export async function extractTextFromPDF(pdfPath) {
 
     // Dynamic import for pdf-parse
     const pdfModule = await import('pdf-parse');
-    const pdf = pdfModule.pdf || pdfModule.PDFParse;
+    const pdf = pdfModule.default || pdfModule;
 
     // Read the PDF file
     const dataBuffer = fs.readFileSync(pdfPath);
@@ -51,7 +51,7 @@ export async function extractTextFromPDFData(pdfData) {
 
     // Dynamic import for pdf-parse
     const pdfModule = await import('pdf-parse');
-    const pdf = pdfModule.pdf || pdfModule.PDFParse;
+    const pdf = pdfModule.default || pdfModule;
 
     // Convert base64 to buffer if needed
     let dataBuffer;
