@@ -7,9 +7,11 @@ export async function generateQuiz(
     pdfContent: string | null = null
 ) {
     try {
-        // Initialize Gemini - use absolute path from project root
-        const apiKeyPath = path.join(process.cwd(), 'src', 'key.api');
-        const apiKey = fs.readFileSync(apiKeyPath, "utf8").trim();
+        // Initialize Gemini
+        const apiKey = process.env.GEMINI_API_KEY;
+        if (!apiKey) {
+            throw new Error('GEMINI_API_KEY environment variable not configured');
+        }
         const ai = new GoogleGenAI({ apiKey });
 
         // Define distinct schemas for each question type

@@ -15,8 +15,10 @@ export async function POST(request: NextRequest) {
     console.log(`Generating ${numKeyPoints} key points from ${extractedText.length} characters of text`);
 
     // Initialize Gemini
-    const apiKeyPath = path.join(process.cwd(), 'src', 'key.api');
-    const apiKey = fs.readFileSync(apiKeyPath, "utf8").trim();
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: 'API key not configured' }, { status: 500 });
+    }
     const ai = new GoogleGenAI({ apiKey });
 
     const prompt = `
