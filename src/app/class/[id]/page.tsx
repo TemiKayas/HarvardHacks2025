@@ -362,10 +362,10 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
 
       {classData ? (
         <div className="flex h-[calc(100vh-120px)]">
-          {/* Left Column - File Management */}
-          <div className="w-1/4 border-r border-zinc-200 dark:border-zinc-700 p-6">
+          {/* Left Column - File Management & Terminal */}
+          <div className="w-1/4 border-r border-zinc-200 dark:border-zinc-700 p-6 flex flex-col h-full">
             <h2 className="text-lg font-semibold mb-4">Files</h2>
-            <div className="space-y-2">
+            <div className="space-y-2 mb-6">
               {classData.files.map((file, index) => (
                 <div key={index} className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${file.selected
                   ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-300 dark:border-blue-700'
@@ -397,6 +397,14 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   </button>
                 </div>
               ))}
+            </div>
+
+            {/* Terminal Section */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <h2 className="text-lg font-semibold mb-4">Terminal</h2>
+              <div className="flex-1 min-h-0">
+                <Terminal />
+              </div>
             </div>
           </div>
 
@@ -488,11 +496,9 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
             </div>
           </div>
 
-          {/* Right Column - Actions & Terminal */}
-          <div className="w-1/4 p-6 flex flex-col h-full">
-            {/* Actions Section */}
-            <div className="mb-6">
-              <h2 className="text-lg font-semibold mb-4">Actions</h2>
+          {/* Right Column - Actions */}
+          <div className="w-1/4 p-6">
+            <h2 className="text-lg font-semibold mb-4">Actions</h2>
 
               <div className="grid grid-cols-2 gap-3 mb-6">
                 <button
@@ -630,8 +636,8 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
               )}
 
               {/* Tools Section */}
-              <h2 className="text-lg font-semibold mb-4">Tools</h2>
-              <div className="space-y-3 mb-6">
+              <h2 className="text-lg font-semibold mb-4 mt-6">Tools</h2>
+              <div className="space-y-3">
                 <button
                   onClick={() => handleQRCode()}
                   className="w-full p-4 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg hover:bg-zinc-50 dark:hover:bg-zinc-700 transition-colors text-sm font-medium"
@@ -645,15 +651,6 @@ export default function ClassPage({ params }: { params: Promise<{ id: string }> 
                   Instructor Dashboard
                 </button>
               </div>
-            </div>
-
-            {/* Terminal Section */}
-            <div className="flex-1 flex flex-col min-h-0">
-              <h2 className="text-lg font-semibold mb-4">Terminal</h2>
-              <div className="flex-1 min-h-0">
-                <Terminal />
-              </div>
-            </div>
           </div>
         </div>
       ) : (
